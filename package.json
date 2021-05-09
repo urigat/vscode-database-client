@@ -1,7 +1,7 @@
 {
-	"name": "vscode-postgresql-client2",
-	"displayName": "PostgreSQL",
-	"description": "PostgreSQL Client for vscode",
+	"name": "vscode-database-client2",
+	"displayName": "Database Client",
+	"description": "Database Client for vscode",
 	"version": "3.7.3",
 	"publisher": "cweijan",
 	"icon": "resources/logo.png",
