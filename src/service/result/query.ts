@@ -168,17 +168,24 @@ export class QueryPage {
             database = fields[0].schema || fields[0].db;
         }
 
+        if(queryParam.connection.dbType==DatabaseType.MSSQL && tableName.indexOf(".")!=-1){
+            tableName=tableName.split(".")[1]
+        }
+
         const tableNode = queryParam.connection.getByRegion(tableName)
         if (tableNode) {
             let primaryKey: string;
+            let primaryKeyList=[];
             const columnList = (await tableNode.getChildren()).map((columnNode: ColumnNode) => {
                 if (columnNode.isPrimaryKey) {
                     primaryKey = columnNode.column.name;
+                    primaryKeyList.push(columnNode.column)
                 }
                 return columnNode.column;
             });
             queryParam.res.primaryKey = primaryKey;
             queryParam.res.columnList = columnList;
+            queryParam.res.primaryKeyList = primaryKeyList;
         }
         queryParam.res.tableCount = sqlList.length;
         queryParam.res.table = tableName;

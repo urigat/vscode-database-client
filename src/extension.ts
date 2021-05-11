@@ -104,6 +104,9 @@ export function activate(context: vscode.ExtensionContext) {
             },
             // externel data
             ...{
+                "mysql.util.github": () => {
+                    vscode.env.openExternal(vscode.Uri.parse('https://github.com/cweijan/vscode-database-client'));
+                },
                 "mysql.struct.diff": () => {
                     new DiffService().startDiff(serviceManager.provider);
                 },
@@ -219,6 +222,9 @@ export function activate(context: vscode.ExtensionContext) {
                     tableNode.dropTable();
                 },
                 "mysql.table.source": (tableNode: TableNode) => {
+                    if (tableNode) { tableNode.showSource(); }
+                },
+                "mysql.view.source": (tableNode: TableNode) => {
                     if (tableNode) { tableNode.showSource(); }
                 },
                 "mysql.table.show": (tableNode: TableNode) => {
