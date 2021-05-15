@@ -1,4 +1,3 @@
-import { Global } from "@/common/global";
 import { Util } from "@/common/util";
 import { QueryGroup } from "@/model/query/queryGroup";
 import { DbTreeDataProvider } from "@/provider/treeDataProvider";
@@ -19,7 +18,7 @@ const extPackage=require("@/../package.json")
 export class EsConnectionNode extends Node {
 
     private static versionMap = {}
-    public iconPath: string|ThemeIcon = path.join(Constants.RES_PATH, "icon/es.png");
+    public iconPath: string|ThemeIcon = path.join(Constants.RES_PATH, "icon/elasticsearch.svg");
     public contextValue: string = ModelType.ES_CONNECTION;
     constructor(readonly key: string, readonly parent: Node) {
         super(key)
@@ -35,13 +34,8 @@ export class EsConnectionNode extends Node {
 
         if (this.disable) {
             this.collapsibleState = TreeItemCollapsibleState.None;
-            this.iconPath = Global.disableIcon;
-            this.label=this.label+" (closed)"
+            this.description=(this.description||'')+" closed"
             return;
-        }
-
-        if (this.isActive(lcp)) {
-            this.iconPath = path.join(Constants.RES_PATH, "icon/connection-active.svg");
         }
 
         if (EsConnectionNode.versionMap[this.label]) {
@@ -54,6 +48,10 @@ export class EsConnectionNode extends Node {
             }).catch(err=>{
                 console.log(err)
             })
+        }
+
+        if (this.isActive(lcp)) {
+            this.description = `${this.description}   Active`;
         }
 
     }

@@ -1,6 +1,5 @@
 import { CodeCommand, Constants, ModelType } from "@/common/constants";
 import { FileManager, FileModel } from "@/common/filesManager";
-import { Global } from "@/common/global";
 import { Util } from "@/common/util";
 import * as Client from '@/model/ftp/lib/connection';
 import * as path from "path";
@@ -22,12 +21,11 @@ export class FTPConnectionNode extends FtpBaseNode {
         if (this.file) {
             this.iconPath = path.join(Constants.RES_PATH, "ssh/folder.svg");
         } else {
-            this.iconPath = new vscode.ThemeIcon("link");
+            this.iconPath = new vscode.ThemeIcon("server");
         }
         if (this.disable) {
             this.collapsibleState = TreeItemCollapsibleState.None;
-            this.iconPath = Global.disableIcon;
-            this.label=this.label+" (closed)"
+            this.description=(this.description||'')+" closed"
         }
         if (file) {
             this.fullPath = (parent as FTPConnectionNode).fullPath + key + "/"

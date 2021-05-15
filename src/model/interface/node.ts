@@ -8,7 +8,7 @@ import { QueryUnit } from "@/service/queryUnit";
 import { ServiceManager } from "@/service/serviceManager";
 import * as vscode from "vscode";
 import { Memento } from "vscode";
-import { resourceLimits } from "worker_threads";
+var commandExistsSync = require('command-exists').sync;
 import { DatabaseCache } from "../../service/common/databaseCache";
 import { NodeUtil } from "../nodeUtil";
 import { CopyAble } from "./copyAble";
@@ -45,6 +45,7 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
     /**
      * status
      */
+    public connectionKey: string;
     public description: string;
     public global?: boolean;
     public disable?: boolean;
@@ -61,6 +62,11 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
     public useSSL?: boolean;
     public clientCertPath?: string;
     public clientKeyPath?: string;
+
+    /**
+     * sqlite only
+     */
+    public dbPath?: string;
 
     /**
       * mssql only
@@ -106,6 +112,7 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
         if (!this.schema) {
             this.schema = source.schema
         }
+        this.connectionKey = source.connectionKey
         this.global = source.global
         this.dbType = source.dbType
         if (source.connectTimeout) {
@@ -118,6 +125,7 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
         }
         this.encrypt = source.encrypt
         this.instanceName = source.instanceName
+        this.dbPath = source.dbPath
         this.domain = source.domain
         this.authType = source.authType
         this.disable = source.disable
@@ -150,9 +158,9 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
     public async indent(command: IndentCommand) {
 
         try {
-            const cacheKey = command.cacheKey || this.provider?.connectionKey;
-            const connections = this.context.get<{ [key: string]: Node }>(cacheKey, {});
-            const key = this.key || this.getConnectId()
+            const connectionKey = command.connectionKey || this.connectionKey;
+            const connections = this.context.get<{ [key: string]: Node }>(connectionKey, {});
+            const key = this.key 
 
             switch (command.command) {
                 case CommandKey.add:
@@ -161,7 +169,6 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
                 case CommandKey.update:
                     connections[key] = NodeUtil.removeParent(this);
                     ConnectionManager.removeConnection(key)
-                    DatabaseCache.clearDatabaseCache(key)
                     break;
                 case CommandKey.delete:
                     ConnectionManager.removeConnection(key)
@@ -171,7 +178,7 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
             }
 
 
-            await this.context.update(cacheKey, connections);
+            await this.context.update(connectionKey, connections);
 
             if (command.refresh !== false) {
                 DbTreeDataProvider.refresh();
@@ -270,11 +277,37 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
         return Util.wrap(origin, this.dbType)
     }
 
+
+    public openTerminal() {
+        let command: string;
+        if (this.dbType == DatabaseType.MYSQL) {
+            this.checkCommand('mysql');
+            command = `mysql -u ${this.user} -p${this.password} -h ${this.host} -P ${this.port} \n`;
+        } else if (this.dbType == DatabaseType.PG) {
+            this.checkCommand('psql');
+            command = `set "PGPASSWORD=${this.password}" && psql -U ${this.user} -h ${this.host} -p ${this.port} \n`;
+        }else if(this.dbType==DatabaseType.REDIS){
+            this.checkCommand('redis-cli');
+            command = `redis-cli -h ${this.host} -p ${this.port} \n`;   
+        }
+        const terminal = vscode.window.createTerminal(this.dbType.toString())
+        terminal.sendText(command)
+        terminal.show()
+    }
+
+    checkCommand(command: string) {
+        if (!commandExistsSync(command)) {
+            const errText = `Command ${command} not exists in path!`;
+            vscode.window.showErrorMessage(errText)
+            throw new Error(errText);
+        }
+    }
+
 }
 export class IndentCommand {
     command: CommandKey;
     refresh?: boolean;
-    cacheKey?: string;
+    connectionKey?: string;
 }
 export enum CommandKey {
     update, add, delete
