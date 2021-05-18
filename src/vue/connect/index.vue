@@ -124,7 +124,7 @@
             </div>
           </section>
 
-          <section class="mb-2" v-if="connectionOption.dbType!='FTP'">
+          <section class="mb-2" v-if="connectionOption.dbType!='FTP' && connectionOption.dbType!='MongoDB'">
             <div class="inline-block mr-10">
               <label class="font-bold mr-5 inline-block w-32">Databases</label>
               <input class="w-64 field__input" placeholder="Special connection database"
@@ -175,7 +175,7 @@
             <el-switch v-model="connectionOption.usingSSH"></el-switch>
           </div>
           <div class="inline-block mr-10"
-            v-if="connectionOption.dbType=='MySQL' || connectionOption.dbType=='PostgreSQL'">
+            v-if="connectionOption.dbType=='MySQL' || connectionOption.dbType=='PostgreSQL' || connectionOption.dbType=='MongoDB'">
             <label class="font-bold mr-5 inline-block w-18">Use SSL</label>
             <el-switch v-model="connectionOption.useSSL"></el-switch>
           </div>
@@ -314,8 +314,9 @@
           "PostgreSQL",
           "SqlServer",
           "SQLite",
-          "ElasticSearch",
+          "MongoDB",
           "Redis",
+          "ElasticSearch",
           "SSH",
           "FTP"
         ],
@@ -438,6 +439,11 @@
             this.connectionOption.port = 6379;
             this.connectionOption.user = null;
             this.connectionOption.database = "0";
+            break;
+          case "MongoDB":
+          this.connectionOption.user = null;
+          this.connectionOption.password = null;
+            this.connectionOption.port = 27017;
             break;
           case "FTP":
             this.connectionOption.port = 21;
