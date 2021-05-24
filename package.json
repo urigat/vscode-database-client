@@ -2,7 +2,7 @@
 	"name": "vscode-database-client2",
 	"displayName": "Database Client",
 	"description": "Database Client for vscode",
-	"version": "3.8.4",
+	"version": "3.8.5",
 	"publisher": "cweijan",
 	"icon": "resources/logo.png",
 	"engines": {
@@ -69,12 +69,12 @@
 			"activitybar": [
 				{
 					"id": "github-cweijan-mysql",
-					"title": "Database Explorer",
+					"title": "Explorer",
 					"icon": "resources/icon/database-container.svg"
 				},
 				{
 					"id": "github-cweijan-nosql",
-					"title": "Other Explorer",
+					"title": "Explorer",
 					"icon": "resources/image/other-container.png"
 				}
 			]
@@ -83,13 +83,13 @@
 			"github-cweijan-mysql": [
 				{
 					"id": "github.cweijan.mysql",
-					"name": ""
+					"name": "Database"
 				}
 			],
 			"github-cweijan-nosql": [
 				{
 					"id": "github.cweijan.nosql",
-					"name": ""
+					"name": "NoSQL"
 				}
 			]
 		},

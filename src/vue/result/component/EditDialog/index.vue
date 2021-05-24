@@ -25,7 +25,7 @@
 
 <script>
 import CellEditor from "./CellEditor.vue";
-import { util } from "../mixin/util";
+import { util } from "../../mixin/util";
 import { wrapByDb } from "@/common/wrapper";
 
 export default {
@@ -150,7 +150,7 @@ export default {
         }
       }
       console.log(updateSql)
-      return updateSql;
+      return updateSql+";";
     },
     confirmUpdate(row, oldRow) {
       if (!oldRow) {

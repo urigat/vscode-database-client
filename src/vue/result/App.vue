@@ -5,10 +5,10 @@
         <el-input type="textarea" :autosize="{ minRows:2, maxRows:5}" v-model="toolbar.sql" class="sql-pannel" />
       </div>
       <div class="toolbar">
-        <el-button v-if="showFullBtn" @click="full" type="primary" title="Full Result View" icon="el-icon-rank" size="mini" circle>
+        <el-button v-if="showFullBtn" @click="()=>sendToVscode('full')" type="primary" title="Full Result View" icon="el-icon-rank" size="mini" circle>
         </el-button>
         <el-input v-model="table.search" size="mini" placeholder="Input To Search Data" style="width:200px" :clearable="true" />
-        <el-button type="primary" size="mini" icon="el-icon-milk-tea" title="Buy the author a cup of coffee" circle @click='openCoffee'></el-button>
+        <el-button type="primary" size="mini" icon="el-icon-milk-tea" title="Buy the author a cup of coffee" circle @click="()=>sendToVscode('openCoffee')"></el-button>
         <el-button @click="$refs.editor.openInsert()" :disabled="result.tableCount!=1" type="info" title="Insert new row" icon="el-icon-circle-plus-outline" size="mini" circle>
         </el-button>
         <el-button @click="deleteConfirm" title="delete" type="danger" size="mini" icon="el-icon-delete" circle :disabled="!toolbar.show">
@@ -32,48 +32,13 @@
     <ux-grid ref="dataTable" v-loading='table.loading' size='small' :cell-style="{height: '35px'}" @sort-change="sort" :height="remainHeight" width="100vh" stripe @selection-change="selectionChange" :checkboxConfig="{ checkMethod: ({row})=>editable&&!row.isFilter,highlight: true}" :data="result.data.filter(data => !table.search || JSON.stringify(data).toLowerCase().includes(table.search.toLowerCase()))" :show-header-overflow="false" :show-overflow="false">
       <ux-table-column type="checkbox" width="40" fixed="left"> </ux-table-column>
       <ux-table-column type="index" width="40" :seq-method="({row,rowIndex})=>(rowIndex||!row.isFilter)?rowIndex:undefined">
-        <template slot="header" slot-scope="scope">
-          <el-popover placement="bottom" title="Select columns to show" width="200" trigger="click" type="primary">
-            <el-checkbox-group v-model="toolbar.showColumns">
-              <el-checkbox v-for="(column,index) in result.fields" :label="column.name" :key="index">
-                {{ column.name }}
-              </el-checkbox>
-            </el-checkbox-group>
-            <el-button icon="el-icon-search" circle title="Select columns to show" size="mini" slot="reference">
-            </el-button>
-          </el-popover>
-        </template>
+        <Controller slot="header" :result="result" :toolbar="toolbar" />
       </ux-table-column>
-      <ux-table-column v-if="result.fields && field.name && toolbar.showColumns.includes(field.name.toLowerCase())" v-for="(field,index) in result.fields" :key="index" :resizable="true" :field="field.name" :title="field.name" :sortable="true" :width="computeWidth(field,0,index,toolbar.filter[field.name])" edit-render>
-        <template slot="header" slot-scope="scope">
-          <el-tooltip class="item" effect="dark" :content="getTip(result.columnList[index],scope.column)" placement="left-start">
-            <div>
-              <span>
-                <span v-if="result.columnList[index]&& (result.columnList[index].nullable != 'YES')" style="color: #f94e4e; position: relative; top: .2em;">
-                  *
-                </span>
-                <span class="column-name">
-                  {{ scope.column.title }}<br/>
-                </span>
-              </span>
-              <span class="column-type" v-if="result.columnList[index]">
-                {{result.columnList[index].type}}
-              </span>
-            </div>
-          </el-tooltip>
-        </template>
-        <template slot-scope="scope">
-          <template v-if="scope.row.isFilter">
-            <el-input class='edit-filter' v-model="toolbar.filter[scope.column.title]" :clearable='true' placeholder="Filter" @clear="filter(null,scope.column.title)" @keyup.enter.native="filter($event,scope.column.title)">
-            </el-input>
-          </template>
-          <template v-if="!scope.row.isFilter">
-            <div class="edit-column" :contenteditable="editable" style="height: 100%; line-height: 33px;" @input="editListen($event,scope)" @contextmenu.prevent="onContextmenu($event,scope)" v-html='dataformat(scope.row[scope.column.title])'></div>
-          </template>
-        </template>
+      <ux-table-column v-for="(field,index) in (result.fields||[]).filter(field=>toolbar.showColumns.includes(field.name.toLowerCase()))" :key="index" :resizable="true" :field="field.name" :title="field.name" :sortable="true" :width="computeWidth(field,0)" edit-render>
+        <Header slot="header" slot-scope="scope" :result="result" :scope="scope" :index="index" />
+        <Row slot-scope="scope" :scope="scope" :result="result" :filterObj="toolbar.filter" :editList.sync="update.editList" @execute="execute" @sendToVscode="sendToVscode" @openEditor="openEditor" />
       </ux-table-column>
     </ux-grid>
-    <!-- table result -->
     <EditDialog ref="editor" :dbType="result.dbType" :database="result.database" :table="result.table" :primaryKey="result.primaryKey" :primaryKeyList="result.primaryKeyList" :columnList="result.columnList" @execute="execute" />
     <ExportDialog :visible.sync="exportOption.visible" @exportHandle="confirmExport" />
   </div>
@@ -81,19 +46,22 @@
 
 <script>
 import { getVscodeEvent } from "../util/vscode";
-import CellEditor from "./component/CellEditor.vue";
+import Row from "./component/Row";
+import Controller from "./component/Row/Controller.vue";
+import Header from "./component/Row/Header.vue";
 import ExportDialog from "./component/ExportDialog.vue";
-import EditDialog from "./component/EditDialog.vue";
+import EditDialog from "./component/EditDialog";
 import { util } from "./mixin/util";
-import { wrapByDb } from "@/common/wrapper";
 let vscodeEvent;
 
 export default {
   mixins: [util],
   components: {
-    CellEditor,
     ExportDialog,
     EditDialog,
+    Controller,
+    Row,
+    Header,
   },
   data() {
     return {
@@ -126,6 +94,7 @@ export default {
       toolbar: {
         sql: null,
         show: false,
+        // using to clear filter input value
         filter: {},
         showColumns: [],
       },
@@ -199,7 +168,10 @@ export default {
       });
     });
     window.onkeypress = (e) => {
-      if ((e.code == "Enter" && e.target.classList.contains('edit-column') ) || (e.ctrlKey && e.code == "KeyS")) {
+      if (
+        (e.code == "Enter" && e.target.classList.contains("edit-column")) ||
+        (e.ctrlKey && e.code == "KeyS")
+      ) {
         this.save();
         e.stopPropagation();
         e.preventDefault();
@@ -235,8 +207,11 @@ export default {
           handlerCommon(response);
           this.info.error = false;
           this.info.needRefresh = false;
-          if(response.message.indexOf("AffectedRows")!=-1 || response.isInsert){
-            this.refresh()
+          if (
+            response.message.indexOf("AffectedRows") != -1 ||
+            response.isInsert
+          ) {
+            this.refresh();
           }
           break;
         case "ERROR":
@@ -264,22 +239,6 @@ export default {
     });
   },
   methods: {
-    getTip(column,scopeColumn){
-      if(!column || !column.comment)return scopeColumn.title
-      
-      return column.comment;
-    },
-    editListen(event, scope) {
-      const { row, column, rowIndex } = scope;
-      const editList = this.update.editList;
-      if (!editList[rowIndex]) {
-        editList[rowIndex] = { ...row };
-        delete editList[rowIndex]._XID;
-        console.log(editList[rowIndex]);
-      }
-      editList[rowIndex][column.title] = event.target.textContent;
-      vscodeEvent.emit("dataModify");
-    },
     save() {
       if (Object.keys(this.update.editList).length == 0 && this.update.lock) {
         return;
@@ -293,15 +252,19 @@ export default {
           this.result.data[index]
         );
       }
-      if(sql){
+      if (sql) {
         vscodeEvent.emit("saveModify", sql);
       }
     },
-    full() {
-      vscodeEvent.emit("full");
+    sendToVscode(event, param) {
+      vscodeEvent.emit(event, param);
     },
-    openCoffee() {
-      vscodeEvent.emit("openCoffee");
+    openEditor(row, isCopy) {
+      if (isCopy) {
+        this.$refs.editor.openCopy(row);
+      } else {
+        this.$refs.editor.openEdit(row);
+      }
     },
     confirmExport(exportOption) {
       vscodeEvent.emit("export", {
@@ -311,148 +274,6 @@ export default {
           table: this.result.table,
         },
       });
-    },
-    onContextmenu(event, scope) {
-      const { row, column } = scope;
-      const name = column.title;
-      const value = event.target.textContent;
-      event.target.value = value;
-      this.$contextmenu({
-        items: [
-          {
-            label: `Copy`,
-            onClick: () => {
-              vscodeEvent.emit("copy", value);
-            },
-            divided: true,
-          },
-          {
-            label: `Open Edit Dialog`,
-            onClick: () => {
-              this.$refs.editor.openEdit(row);
-            },
-          },
-          {
-            label: `Open Copy Dialog`,
-            onClick: () => {
-              this.$refs.editor.openCopy(row);
-            },
-            divided: true,
-          },
-          {
-            label: `Filter by ${name} = '${value}'`,
-            onClick: () => {
-              this.filter(event, name, "=");
-            },
-          },
-          {
-            label: "Filter by",
-            divided: true,
-            children: [
-              {
-                label: `Filter by ${name} > '${value}'`,
-                onClick: () => {
-                  this.filter(event, name, ">");
-                },
-              },
-              {
-                label: `Filter by ${name} >= '${value}'`,
-                onClick: () => {
-                  this.filter(event, name, ">=");
-                },
-                divided: true,
-              },
-              {
-                label: `Filter by ${name} < '${value}'`,
-                onClick: () => {
-                  this.filter(event, name, "<");
-                },
-              },
-              {
-                label: `Filter by ${name} <= '${value}'`,
-                onClick: () => {
-                  this.filter(event, name, "<=");
-                },
-                divided: true,
-              },
-              {
-                label: `Filter by ${name} LIKE '%${value}%'`,
-                onClick: () => {
-                  event.target.value = `%${value}%`;
-                  this.filter(event, name, "LIKE");
-                },
-              },
-              {
-                label: `Filter by ${name} NOT LIKE '%${value}%'`,
-                onClick: () => {
-                  event.target.value = `%${value}%`;
-                  this.filter(event, name, "NOT LIKE");
-                },
-              },
-            ],
-          },
-        ],
-        event,
-        customClass: "class-a",
-        zIndex: 3,
-        minWidth: 230,
-      });
-      return false;
-    },
-    filter(event, column, operation) {
-      if (!operation) operation = "=";
-      let inputvalue = "" + (event ? event.target.value : "");
-      if (this.result.dbType == "ElasticSearch") {
-        vscodeEvent.emit("esFilter", { match: { [column]: inputvalue } });
-        return;
-      }
-
-      let filterSql =
-        this.result.sql.replace(/\n/, " ").replace(";", " ") + " ";
-
-      let existsCheck = new RegExp(
-        `(WHERE|AND)?\\s*\`?${column}\`?\\s*(=|is|>=|<=|<>)\\s*.+?\\s`,
-        "igm"
-      );
-
-      if (inputvalue) {
-        const condition =
-          inputvalue.toLowerCase() === "null"
-            ? `${column} is null`
-            : `${wrapByDb(
-                column,
-                this.result.dbType
-              )} ${operation} '${inputvalue}'`;
-        if (existsCheck.exec(filterSql)) {
-          // condition present
-          filterSql = filterSql.replace(existsCheck, `$1 ${condition} `);
-        } else if (filterSql.match(/\bwhere\b/gi)) {
-          //have where
-          filterSql = filterSql.replace(
-            /\b(where)\b/gi,
-            `\$1 ${condition} AND `
-          );
-        } else {
-          //have not where
-          filterSql = filterSql.replace(
-            new RegExp(`(from\\s*.+?)\\s`, "ig"),
-            `\$1 WHERE ${condition} `
-          );
-        }
-      } else {
-        // empty value, clear filter
-        let beforeAndCheck = new RegExp(
-          `\\b${column}\\b\\s*(=|is)\\s*.+?\\s*AND`,
-          "igm"
-        );
-        if (beforeAndCheck.exec(filterSql)) {
-          filterSql = filterSql.replace(beforeAndCheck, "");
-        } else {
-          filterSql = filterSql.replace(existsCheck, " ");
-        }
-      }
-
-      this.execute(filterSql + ";");
     },
     changePageSize(size) {
       this.page.pageSize = size;
@@ -509,9 +330,11 @@ export default {
                     .join("\n")}`
                 : `DELETE /${this.result.table}/_doc/${checkboxRecords[0]}`;
           } else if (this.result.dbType == "MongoDB") {
-            deleteSql = `db('${this.result.database}').collection("${this.result.table}")
+            deleteSql = `db('${this.result.database}').collection("${
+              this.result.table
+            }")
               .deleteMany({_id:{$in:[${checkboxRecords.join(",")}]}})`;
-          }else {
+          } else {
             deleteSql =
               checkboxRecords.length > 1
                 ? `DELETE FROM ${this.result.table} WHERE ${
@@ -529,22 +352,27 @@ export default {
           }
         });
     },
-    computeWidth(field, index, keyIndex, value) {
-      let key=field.name;
-      if (this.table.widthItem[keyIndex]) return this.table.widthItem[keyIndex];
+    /**
+     * compute column row width, get maxium of fieldName or value or fieldType by top 10 row.
+     */
+    computeWidth(field, index) {
+      // only compute once.
+      let key = field.name;
+      if (this.table.widthItem[key]) return this.table.widthItem[key];
       if (!index) index = 0;
       if (!this.result.data[index] || index > 10) return 70;
-      if (!value) {
-        value = this.result.data[index][key];
-      }
-      var dynamic = value ? (value + "").length * 10 : 
-        Math.max((key + "").length * 10,(field.type+"").length*10)
-      ;
+      const value = this.result.data[index][key];
+      var dynamic = Math.max(
+        (key + "").length * 10,
+        (value + "").length * 10,
+        (field.type + "").length * 10
+      );
       if (dynamic > 150) dynamic = 150;
       if (dynamic < 70) dynamic = 70;
-      var nextDynamic = this.computeWidth(field, index + 1, keyIndex);
+      var nextDynamic = this.computeWidth(field, index + 1);
       if (dynamic < nextDynamic) dynamic = nextDynamic;
-      this.table.widthItem[keyIndex] = dynamic;
+      // cache column width
+      this.table.widthItem[key] = dynamic;
       return dynamic;
     },
     refresh() {
@@ -572,15 +400,7 @@ export default {
       });
       this.table.loading = true;
     },
-    dataformat(origin) {
-      if (origin == undefined || origin == null) {
-        return "<span class='null-column'>(NULL)</span>";
-      }
-      if (origin.hasOwnProperty("type")) {
-        return String.fromCharCode.apply(null, new Uint16Array(origin.data));
-      }
-      return origin;
-    },
+
     initShowColumn() {
       const fields = this.result.fields;
       if (!fields) return;
