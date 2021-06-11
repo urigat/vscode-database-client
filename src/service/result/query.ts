@@ -1,10 +1,11 @@
+import { FieldInfo } from "@/common/typeDef";
 import { Util } from "@/common/util";
 import { EsRequest } from "@/model/es/esRequest";
 import { ServiceManager } from "@/service/serviceManager";
 import { basename, extname } from "path";
-import { env, StatusBarAlignment, StatusBarItem, Uri, ViewColumn, window } from "vscode";
+import { env, Uri, ViewColumn, window } from "vscode";
 import { Trans } from "~/common/trans";
-import { ConfigKey, DatabaseType, MessageType, OperateType } from "../../common/constants";
+import { ConfigKey, DatabaseType, MessageType } from "../../common/constants";
 import { Global } from "../../common/global";
 import { ViewManager } from "../../common/viewManager";
 import { Node } from "../../model/interface/node";
@@ -39,14 +40,14 @@ export class QueryPage {
             eventHandler: async (handler) => {
                 handler.on("init", () => {
                     if (queryParam.res?.table) {
-                        handler.panel.title = `${queryParam.res.table}@${dbOption.schema}`
+                        handler.panel.title = queryParam.res.table;
                     }
                     queryParam.res.transId = Trans.transId;
                     queryParam.res.viewId = queryParam.queryOption?.viewId;
                     handler.emit(queryParam.type, { ...queryParam.res, dbType: dbOption.dbType })
-                }).on(OperateType.execute, (params) => {
+                }).on('execute', (params) => {
                     QueryUnit.runQuery(params.sql, dbOption, queryParam.queryOption);
-                }).on(OperateType.next, async (params) => {
+                }).on('next', async (params) => {
                     const sql = ServiceManager.getPageService(dbOption.dbType).build(params.sql, params.pageNum, params.pageSize)
                     dbOption.execute(sql).then((rows) => {
                         handler.emit(MessageType.NEXT_PAGE, { sql, data: rows })
@@ -69,12 +70,14 @@ export class QueryPage {
                     dbOption.execute(params.sql.replace(/\bSELECT\b.+?\bFROM\b/i, 'select count(*) count from')).then((rows) => {
                         handler.emit('COUNT', { data: rows[0].count })
                     })
-                }).on(OperateType.export, (params) => {
+                }).on('export', (params) => {
                     this.exportService.export({ ...params.option, request: queryParam.res.request, dbOption }).then(() => {
                         handler.emit('EXPORT_DONE')
                     })
                 }).on('changePageSize', (pageSize) => {
                     Global.updateConfig(ConfigKey.DEFAULT_LIMIT, pageSize)
+                }).on('openGithub', () => {
+                    env.openExternal(Uri.parse('https://github.com/cweijan/vscode-database-client'));
                 }).on('openCoffee', () => {
                     env.openExternal(Uri.parse('https://www.buymeacoffee.com/cweijan'));
                 }).on('dataModify', () => {
@@ -97,7 +100,9 @@ export class QueryPage {
             case MessageType.DATA:
                 if (queryParam.connection.dbType == DatabaseType.ES) {
                     await this.loadEsColumnList(queryParam);
-                } else {
+                }else if (queryParam.connection.dbType == DatabaseType.MONGO_DB) {
+                    await this.loadMongoColumnList(queryParam);
+                }  else {
                     await this.loadColumnList(queryParam);
                 }
                 break;
@@ -150,6 +155,15 @@ export class QueryPage {
         queryParam.res.columnList = queryParam.res.fields.slice(4) as any[]
     }
 
+    private static async loadMongoColumnList(queryParam: QueryParam<DataResponse>) {
+        const parse = queryParam.res.sql.match(/db\('(.+?)'\)\.collection\('(.+?)'\)/);
+        queryParam.res.database = parse[1]
+        queryParam.res.table = parse[2]
+        queryParam.res.primaryKey = '_id'
+        queryParam.res.tableCount = 1
+        queryParam.res.columnList = queryParam.res.fields as any[]
+    }
+
     private static async loadColumnList(queryParam: QueryParam<DataResponse>) {
         // fix null point on result view
         queryParam.res.columnList = []
@@ -168,17 +182,28 @@ export class QueryPage {
             database = fields[0].schema || fields[0].db;
         }
 
+        if (queryParam.connection.dbType == DatabaseType.MSSQL && tableName.indexOf(".") != -1) {
+            tableName = tableName.split(".")[1]
+        }
+
         const tableNode = queryParam.connection.getByRegion(tableName)
         if (tableNode) {
             let primaryKey: string;
+            let primaryKeyList = [];
             const columnList = (await tableNode.getChildren()).map((columnNode: ColumnNode) => {
                 if (columnNode.isPrimaryKey) {
                     primaryKey = columnNode.column.name;
+                    primaryKeyList.push(columnNode.column)
                 }
                 return columnNode.column;
             });
             queryParam.res.primaryKey = primaryKey;
             queryParam.res.columnList = columnList;
+            queryParam.res.primaryKeyList = primaryKeyList;
+            // compatible sqlite empty result.
+            if (queryParam.res.fields.length == 0) {
+                queryParam.res.fields = columnList as any as FieldInfo[];
+            }
         }
         queryParam.res.tableCount = sqlList.length;
         queryParam.res.table = tableName;

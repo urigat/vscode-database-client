@@ -5,8 +5,6 @@ import { Console } from "../../common/Console";
 import { ExportContext, ExportType } from "./exportContext";
 import { ProgressLocation } from "vscode";
 import { ConnectionManager } from "../connectionManager";
-import { DatabaseType } from "@/common/constants";
-import { ESIndexNode } from "@/model/es/model/esIndexNode";
 
 export class ExportService {
 
@@ -99,7 +97,7 @@ export class ExportService {
             let values = "";
             for (const key in row) {
                 columns += `${key},`
-                values += `'${row[key]}',`
+                values += `${row[key]!=null?`'${row[key]}'`:'null'},`
             }
             sql += `insert into ${exportContext.table}(${columns.replace(/.$/, '')}) values(${values.replace(/.$/, '')});\n`
         }
@@ -129,7 +127,7 @@ export class ExportService {
         let csvContent = "";
         for (const row of rows) {
             for (const key in row) {
-                csvContent += `${row[key]},`
+                csvContent += `${row[key]!=null?row[key]:''},`
             }
             csvContent = csvContent.replace(/.$/, "") + "\n"
         }
