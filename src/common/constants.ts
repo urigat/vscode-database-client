@@ -14,11 +14,6 @@ export class Pattern {
     public static MULTI_PATTERN = /\b(TRIGGER|PROCEDURE|FUNCTION)\b/ig
 }
 
-export enum OperateType {
-    execute = 'execute', export = 'export',
-    next = 'next', init = 'init', changeTheme = "changeTheme"
-}
-
 export enum CacheKey {
     ConectionsKey = "mysql.connections",
     CollapseSate = "mysql.database.cache.collapseState",
@@ -27,10 +22,9 @@ export enum CacheKey {
 }
 
 export enum ConfigKey {
-    ENABLE_DELIMITER = "enableDelimiter",
     DEFAULT_LIMIT = "defaultSelectLimit",
+    PREFRE_CONNECTION_NAME = "prefreConnectionName",
     DISABLE_SQL_CODELEN = "disableSqlCodeLen",
-    SHOW_TOTAL = "showTotal",
 }
 
 export enum CodeCommand {

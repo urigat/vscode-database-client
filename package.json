@@ -2,7 +2,7 @@
 	"name": "vscode-database-client2",
 	"displayName": "Database Client",
 	"description": "Database Client for vscode",
-	"version": "3.8.7",
+	"version": "3.8.9",
 	"publisher": "cweijan",
 	"icon": "resources/logo.png",
 	"engines": {
@@ -214,6 +214,11 @@
 			{
 				"command": "mysql.struct.export",
 				"title": "%command.struct.export%",
+				"category": "MySQL"
+			},
+			{
+				"command": "mysql.document.generate",
+				"title": "%command.document.generate%",
 				"category": "MySQL"
 			},
 			{
@@ -647,9 +652,14 @@
 					"group": "mysql@6"
 				},
 				{
+					"command": "mysql.document.generate",
+					"when": "view =~ /cweijan.+?ql/ && viewItem == database",
+					"group": "mysql@7"
+				},
+				{
 					"command": "mysql.data.import",
 					"when": "view =~ /cweijan.+?ql/ && viewItem == database",
-					"group": "mysql@6"
+					"group": "mysql@8"
 				},
 				{
 					"command": "mysql.table.show",
@@ -887,20 +897,15 @@
 			"type": "object",
 			"title": "%config.title%",
 			"properties": {
-				"database-client.enableDelimiter": {
-					"type": "boolean",
-					"default": false,
-					"description": "%config.enableDelimiter%"
-				},
 				"database-client.defaultSelectLimit": {
 					"type": "integer",
 					"default": 100,
 					"description": "%config.defaultSelectLimit%"
 				},
-				"database-client.showTotal": {
+				"database-client.prefreConnectionName": {
 					"type": "boolean",
 					"default": true,
-					"description": "%config.showTotal%"
+					"description": "%config.prefreConnectionName%"
 				},
 				"database-client.disableSqlCodeLen": {
 					"type": "boolean",
@@ -989,6 +994,7 @@
 		"lodash.defaults": "^4.1.0",
 		"mongodb": "^3.6.3",
 		"mysql2": "^2.2.5",
+		"officegen": "^0.6.5",
 		"pg": "^8.5.1",
 		"portfinder": "^1.0.26",
 		"pretty-bytes": "^5.3.0",

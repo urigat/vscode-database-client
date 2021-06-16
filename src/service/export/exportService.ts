@@ -80,6 +80,10 @@ export class ExportService {
     }
 
     private exportToJson(context: ExportContext) {
+        for (const row of context.rows)
+            for (const key in row)
+                if (row[key] === undefined)
+                    row[key] = null;
         fs.writeFileSync(context.exportPath, JSON.stringify(context.rows, null, 2));
     }
 
@@ -97,7 +101,7 @@ export class ExportService {
             let values = "";
             for (const key in row) {
                 columns += `${key},`
-                values += `'${row[key]}',`
+                values += `${row[key]!=null?`'${row[key]}'`:'null'},`
             }
             sql += `insert into ${exportContext.table}(${columns.replace(/.$/, '')}) values(${values.replace(/.$/, '')});\n`
         }
@@ -127,7 +131,7 @@ export class ExportService {
         let csvContent = "";
         for (const row of rows) {
             for (const key in row) {
-                csvContent += `${row[key]},`
+                csvContent += `${row[key]!=null?row[key]:''},`
             }
             csvContent = csvContent.replace(/.$/, "") + "\n"
         }

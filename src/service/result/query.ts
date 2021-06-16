@@ -1,11 +1,11 @@
-import { ColumnMeta, FieldInfo } from "@/common/typeDef";
+import { FieldInfo } from "@/common/typeDef";
 import { Util } from "@/common/util";
 import { EsRequest } from "@/model/es/esRequest";
 import { ServiceManager } from "@/service/serviceManager";
 import { basename, extname } from "path";
-import { env, StatusBarAlignment, StatusBarItem, Uri, ViewColumn, window } from "vscode";
+import { env, Uri, ViewColumn, window } from "vscode";
 import { Trans } from "~/common/trans";
-import { ConfigKey, DatabaseType, MessageType, OperateType } from "../../common/constants";
+import { ConfigKey, DatabaseType, MessageType } from "../../common/constants";
 import { Global } from "../../common/global";
 import { ViewManager } from "../../common/viewManager";
 import { Node } from "../../model/interface/node";
@@ -45,9 +45,9 @@ export class QueryPage {
                     queryParam.res.transId = Trans.transId;
                     queryParam.res.viewId = queryParam.queryOption?.viewId;
                     handler.emit(queryParam.type, { ...queryParam.res, dbType: dbOption.dbType })
-                }).on(OperateType.execute, (params) => {
+                }).on('execute', (params) => {
                     QueryUnit.runQuery(params.sql, dbOption, queryParam.queryOption);
-                }).on(OperateType.next, async (params) => {
+                }).on('next', async (params) => {
                     const sql = ServiceManager.getPageService(dbOption.dbType).build(params.sql, params.pageNum, params.pageSize)
                     dbOption.execute(sql).then((rows) => {
                         handler.emit(MessageType.NEXT_PAGE, { sql, data: rows })
@@ -67,10 +67,17 @@ export class QueryPage {
                 }).on('copy', value => {
                     Util.copyToBoard(value)
                 }).on('count', async (params) => {
-                    dbOption.execute(params.sql.replace(/\bSELECT\b.+?\bFROM\b/i, 'select count(*) count from')).then((rows) => {
-                        handler.emit('COUNT', { data: rows[0].count })
-                    })
-                }).on(OperateType.export, (params) => {
+                    if(dbOption.dbType==DatabaseType.MONGO_DB){
+                        const sql=params.sql.replace(/(.+?find\(.+?\)).+/i, '$1').replace("find","count");
+                        dbOption.execute(sql).then((count) => {
+                            handler.emit('COUNT', { data: count })
+                        })
+                    }else{
+                        dbOption.execute(params.sql.replace(/\bSELECT\b.+?\bFROM\b/i, 'select count(*) count from')).then((rows) => {
+                            handler.emit('COUNT', { data: rows[0].count })
+                        })
+                    }
+                }).on('export', (params) => {
                     this.exportService.export({ ...params.option, request: queryParam.res.request, dbOption }).then(() => {
                         handler.emit('EXPORT_DONE')
                     })
@@ -175,15 +182,17 @@ export class QueryPage {
         let tableName = sqlList[0]
         let database: string;
 
+        if (queryParam.connection.dbType == DatabaseType.MSSQL && tableName.indexOf(".") != -1) {
+            tableName = tableName.split(".")[1]
+        }
+
         // mysql直接从结果集拿
         const fields = queryParam.res.fields
         if (fields && fields[0]?.orgTable) {
             tableName = fields[0].orgTable;
             database = fields[0].schema || fields[0].db;
-        }
-
-        if (queryParam.connection.dbType == DatabaseType.MSSQL && tableName.indexOf(".") != -1) {
-            tableName = tableName.split(".")[1]
+        }else{
+            tableName=tableName.replace(/^"?(.+?)"?$/,'$1')
         }
 
         const tableNode = queryParam.connection.getByRegion(tableName)

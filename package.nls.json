@@ -23,6 +23,7 @@
 	"command.query.switch": "Open Query",
 	"command.data.import": "Import Sql",
 	"command.data.export": "Export Data",
+	"command.document.generate": "Generate Document",
 	"command.struct.export": "Export Struct",
 	"command.db.active": "Change Active Database",
 	"command.table.truncate": "Truncate Table",
@@ -58,7 +59,6 @@
     "command.redis.key.del": "Delete Key",
 	"command.redis.key.detail": "View Key Detail",
 	"config.title":"Database Client",
-	"config.enableDelimiter":"Support delimiter when import sql.",
-	"config.defaultSelectLimit":"Default limit of query sql.",
-	"config.showTotal": "Show total on result view."
+	"config.prefreConnectionName":"Using connection name as connection node name",
+	"config.defaultSelectLimit":"Default limit of query sql."
 }
