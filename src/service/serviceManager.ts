@@ -1,5 +1,4 @@
 import { CacheKey, DatabaseType } from "@/common/constants";
-import { EsIndexGroup } from "@/model/es/model/esIndexGroupNode";
 import { SqlCodeLensProvider } from "@/provider/sqlCodeLensProvider";
 import * as vscode from "vscode";
 import { ExtensionContext } from "vscode";
@@ -36,6 +35,7 @@ import { SettingService } from "./setting/settingService";
 import ConnectionProvider from "@/model/ssh/connectionProvider";
 import { SqliTeDialect } from "./dialect/sqliteDialect";
 import { MongoPageService } from "./page/mongoPageService";
+import { HistoryProvider } from "@/provider/history/historyProvider";
 
 export class ServiceManager {
 
@@ -53,7 +53,7 @@ export class ServiceManager {
     constructor(private readonly context: ExtensionContext) {
         Global.context = context;
         this.mockRunner = new MockRunner();
-        DatabaseCache.initCache(context);
+        DatabaseCache.initCache();
         ViewManager.initExtesnsionPath(context.extensionPath);
         FileManager.init(context)
         new ConnectionProvider();
@@ -71,6 +71,7 @@ export class ServiceManager {
         this.initMysqlService();
         res.push(this.initTreeView())
         res.push(this.initTreeProvider())
+        // res.push(vscode.window.createTreeView("github.cweijan.history",{treeDataProvider:new HistoryProvider(this.context)}))
         ServiceManager.instance = this;
         this.isInit = true
         return res
@@ -78,7 +79,7 @@ export class ServiceManager {
 
 
     private initTreeView() {
-        this.provider = new DbTreeDataProvider(this.context, CacheKey.ConectionsKey);
+        this.provider = new DbTreeDataProvider(this.context, CacheKey.DATBASE_CONECTIONS);
         const treeview = vscode.window.createTreeView("github.cweijan.mysql", {
             treeDataProvider: this.provider,
         });

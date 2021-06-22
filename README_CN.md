@@ -1,8 +1,8 @@
 # Database Client
 
-[![Rating](https://vsmarketplacebadge.apphb.com/rating-short/cweijan.vscode-mysql-client2.svg)
+![Rating](https://vsmarketplacebadge.apphb.com/rating-short/cweijan.vscode-mysql-client2.svg)
 
-该项目为Visual Studio Code的数据库客户端插件, 支持MySQL/MariaDB, Microsoft SQL Server, PostgreSQL, SQLite, MongoDB, Redis以及ElasticSearch的管理.
+该项目为Visual Studio Code的数据库客户端插件, 支持**MySQL/MariaDB, Microsoft SQL Server, PostgreSQL, SQLite, MongoDB, Redis**以及ElasticSearch的管理.
 
 - 功能
   - [连接](#连接)
@@ -43,14 +43,6 @@
 ## 历史记录
 
 - 点击历史记录按钮后可查看以往执行的Sql记录.![history](images/history.jpg)
-
-## Sqlite
-
-如果你用Linux或者Mac系统, 需要先安装sqlite3.
-
-- Debian, Ubuntu:`sudo apt-get install sqlite`
-- CentOS, Fedora, RedHat:`sudo yum install sqlite3`
-- MacOS:`brew install sqlite3`
 
 ## 备份/导入
 

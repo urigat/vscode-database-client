@@ -2,7 +2,7 @@
 	"name": "vscode-database-client2",
 	"displayName": "Database Client",
 	"description": "Database Client for vscode",
-	"version": "3.8.9",
+	"version": "3.9.0",
 	"publisher": "cweijan",
 	"icon": "resources/logo.png",
 	"engines": {
@@ -154,6 +154,12 @@
 			{
 				"command": "mysql.connection.edit",
 				"title": "%command.connection.edit%",
+				"category": "MySQL"
+			},
+			{
+				"command": "mysql.connection.config",
+				"title": "%command.connection.config%",
+				"icon": "$(gear)",
 				"category": "MySQL"
 			},
 			{
@@ -510,8 +516,13 @@
 					"group": "navigation@-2"
 				},
 				{
-					"command": "mysql.util.github",
+					"command": "mysql.connection.config",
 					"when": "view =~ /cweijan.+?ql/",
+					"group": "navigation@-3"
+				},
+				{
+					"command": "mysql.util.github",
+					"when": "view == github.cweijan.nosql",
 					"group": "navigation@-3"
 				}
 			],
@@ -834,12 +845,12 @@
 				{
 					"command": "mysql.ssh.forward.port",
 					"when": "view == github.cweijan.nosql && viewItem == sshConnection",
-					"group": "1_connection@0"
+					"group": "1_nosql@0"
 				},
 				{
 					"command": "mysql.ssh.socks.port",
 					"when": "view == github.cweijan.nosql && viewItem == sshConnection",
-					"group": "1_connection@1"
+					"group": "1_nosql@1"
 				},
 				{
 					"command": "mysql.ssh.file.new",
@@ -902,10 +913,10 @@
 					"default": 100,
 					"description": "%config.defaultSelectLimit%"
 				},
-				"database-client.prefreConnectionName": {
+				"database-client.preferConnectionName": {
 					"type": "boolean",
 					"default": true,
-					"description": "%config.prefreConnectionName%"
+					"description": "%config.preferConnectionName%"
 				},
 				"database-client.disableSqlCodeLen": {
 					"type": "boolean",
@@ -992,7 +1003,6 @@
 		"json-format-highlight": "^1.0.4",
 		"lodash": "^4.17.20",
 		"lodash.defaults": "^4.1.0",
-		"mongodb": "^3.6.3",
 		"mysql2": "^2.2.5",
 		"officegen": "^0.6.5",
 		"pg": "^8.5.1",
@@ -1009,8 +1019,7 @@
 		"xregexp": "2.0.0",
 		"xterm": "^4.12.0",
 		"xterm-addon-fit": "^0.5.0",
-		"xterm-addon-search": "^0.5.0",
-		"xterm-addon-search-bar": "^0.2.0",
+		"xterm-addon-search": "^0.8.0",
 		"xterm-addon-web-links": "^0.4.0"
 	},
 	"__metadata": {
