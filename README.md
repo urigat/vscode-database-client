@@ -1,7 +1,5 @@
 # Database Client
 
-  
-
 Database Client for Visual Studio Code. It supports databases MySQL/MariaDB, Microsoft SQL Server, PostgreSQL, SQLite, MongoDB, Redis, and ElasticSearch.
 
 > Project site: [vscode-database-client](https://github.com/cweijan/vscode-database-client), [中文文档](README_CN.md)
@@ -46,8 +44,8 @@ That will open a sql editor bind of database, it provider:
 
 1. IntelliSense sql edit.
 2. snippets:`sel、del、ins、upd、joi`...
-3. Run selected or current cursor sql (Shortcut : F9).
-4. Run all sql (Shortcut : Ctrl+F9).
+3. Run selected or current cursor sql (Shortcut : Ctrl+Enter).
+4. Run all sql (Shortcut : Ctrl+Shift+Enter).
 
 ![run](images/run.jpg)
 
@@ -62,12 +60,6 @@ You can easily generate test data.
 Click the history button to open the list of recently executed query history records.
 
 ![history](images/history.jpg)
-
-## Sqlite
-
-If you using Linux that must install sqlite3 first.
-
-- Ubuntu:`sudo apt-get install sqlite`
 
 ## Backup/Import
 

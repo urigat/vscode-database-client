@@ -1,5 +1,34 @@
 # CHANGELOG
 
+# 3.9.3 2021-7-2
+
+- Better sql complection.
+- Fix multi line space ignored.
+
+# 3.9.2 2021-6-24
+
+- Enhance sql detect.
+- Update run query shortcut.
+- Keep query file content.
+- Create SQL document outline.
+
+# 3.9.0 2021-6-22
+
+- Support edit connection config.
+- Isolate the configuration of vscode and ssh-remote.
+- Support load data when load timeout.
+- Support install sqlite3 from connect page.
+- Better change active database item.
+- Fix vscode shortcut not working on ssh terminal.
+- Fix mongo export data fail.
+- Update some ui.
+
+# 3.8.9 2021-6-16
+
+- Add shortcut of run sql on result view(ctrl+enter).
+- Support generate database document.
+- Fix bugs.
+
 # 3.8.8 2021-6-11
 
 - Fix date incorrect of sqlserver #199.
