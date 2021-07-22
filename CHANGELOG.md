@@ -1,5 +1,16 @@
 # CHANGELOG
 
+# 3.9.6 2021-7-22
+
+- Add hover to run selected sql.
+- Add sql template action icon to table node.
+
+# 3.9.5 2021-7-19
+
+- Using mysqldump to dump database.
+- Fix connect to elasticsearch using ssh tunnel fail.
+- Better postgresql support.
+
 # 3.9.3 2021-7-2
 
 - Better sql complection.

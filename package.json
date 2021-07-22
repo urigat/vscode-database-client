@@ -2,7 +2,7 @@
 	"name": "vscode-database-client2",
 	"displayName": "Database Client",
 	"description": "Database Client for vscode",
-	"version": "3.9.4",
+	"version": "3.9.6",
 	"publisher": "cweijan",
 	"icon": "resources/logo.png",
 	"engines": {
@@ -80,12 +80,12 @@
 			"activitybar": [
 				{
 					"id": "github-cweijan-mysql",
-					"title": "Explorer",
+					"title": "Database",
 					"icon": "resources/icon/database-container.svg"
 				},
 				{
 					"id": "github-cweijan-nosql",
-					"title": "Explorer",
+					"title": "NoSQL",
 					"icon": "resources/image/other-container.png"
 				}
 			]
@@ -321,6 +321,12 @@
 				"command": "mysql.column.drop",
 				"title": "%command.column.drop%",
 				"category": "MySQL"
+			},
+			{
+				"command": "mysql.template.sql",
+				"title": "%command.template.sql%",
+				"category": "MySQL",
+				"icon": "$(symbol-file)"
 			},
 			{
 				"command": "mysql.template.table",
@@ -610,7 +616,7 @@
 				},
 				{
 					"command": "mysql.connection.terminal",
-					"when": "view =~ /cweijan.+?ql/ && viewItem == connection",
+					"when": "view =~ /cweijan.+?ql/ && viewItem =~ /^(connection|catalog)$/",
 					"group": "inline@2"
 				},
 				{
@@ -707,6 +713,11 @@
 					"command": "mysql.table.design",
 					"when": "view =~ /cweijan.+?ql/ && viewItem == table",
 					"group": "1_inline@0"
+				},
+				{
+					"command": "mysql.template.sql",
+					"when": "view =~ /cweijan.+?ql/ && viewItem == table",
+					"group": "inline@5"
 				},
 				{
 					"command": "mysql.table.source",
@@ -984,7 +995,7 @@
 	},
 	"scripts": {
 		"dev": "webpack --progress",
-		"build": "webpack -p --progress",
+		"build": "webpack --progress --mode=production",
 		"lib": "webpack --config webpack.config.lib.js --progress -p",
 		"publich": "vsce publish",
 		"vscode:prepublish": "npm run build"

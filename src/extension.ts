@@ -110,13 +110,13 @@ export function activate(context: vscode.ExtensionContext) {
                     new DiffService().startDiff(serviceManager.provider);
                 },
                 "mysql.data.export": (node: SchemaNode | TableNode) => {
-                    serviceManager.dumpService.dump(node, true)
+                    ServiceManager.getDumpService(node.dbType).dump(node, true)
                 },
                 "mysql.struct.export": (node: SchemaNode | TableNode) => {
-                    serviceManager.dumpService.dump(node, false)
+                    ServiceManager.getDumpService(node.dbType).dump(node, false)
                 },
                 "mysql.document.generate": (node: SchemaNode | TableNode) => {
-                    serviceManager.dumpService.generateDocument(node)
+                    ServiceManager.getDumpService(node.dbType).generateDocument(node)
                 },
                 "mysql.data.import": (node: SchemaNode | ConnectionNode) => {
                     const importService=ServiceManager.getImportService(node.dbType);
@@ -185,7 +185,7 @@ export function activate(context: vscode.ExtensionContext) {
             },
             // query node
             ...{
-                "mysql.runQuery": (sql) => {
+                "mysql.runQuery": (sql:string) => {
                     if (typeof sql != 'string') { sql = null; }
                     QueryUnit.runQuery(sql, ConnectionManager.tryGetConnection());
                 },
@@ -283,6 +283,9 @@ export function activate(context: vscode.ExtensionContext) {
             },
             // create template
             ...{
+                "mysql.template.sql": (tableNode: TableNode) => {
+                    tableNode.selectSqlTemplate();
+                },
                 "mysql.template.table": (tableGroup: TableGroup) => {
                     tableGroup.createTemplate();
                 },
@@ -339,8 +342,7 @@ function commandWrapper(commandDefinition: any, command: string): (...args: any[
     return (...args: any[]) => {
         try {
             commandDefinition[command](...args);
-        }
-        catch (err) {
+        }catch (err) {
             Console.log(err);
         }
     };

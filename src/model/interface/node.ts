@@ -8,6 +8,7 @@ import { ConnectionManager } from "@/service/connectionManager";
 import { SqlDialect } from "@/service/dialect/sqlDialect";
 import { QueryUnit } from "@/service/queryUnit";
 import { ServiceManager } from "@/service/serviceManager";
+import { platform } from "os";
 import * as vscode from "vscode";
 import { Memento } from "vscode";
 var commandExistsSync = require('command-exists').sync;
@@ -37,7 +38,7 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
     public connectTimeout?: number;
     public requestTimeout?: number;
     public includeDatabases?: string;
-
+    public connectionUrl?: string;
     /**
      * ssh
      */
@@ -113,6 +114,7 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
         this.connectionKey = source.connectionKey
         this.global = source.global
         this.dbType = source.dbType
+        this.connectionUrl = source.connectionUrl
         if (source.connectTimeout) {
             this.connectTimeout = parseInt(source.connectTimeout as any)
             source.connectTimeout = parseInt(source.connectTimeout as any)
@@ -285,7 +287,8 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
             command = `mysql -u ${this.user} -p${this.password} -h ${this.host} -P ${this.port} \n`;
         } else if (this.dbType == DatabaseType.PG) {
             this.checkCommand('psql');
-            command = `set "PGPASSWORD=${this.password}" && psql -U ${this.user} -h ${this.host} -p ${this.port} \n`;
+            let prefix = platform() == 'win32' ? 'set' : 'export';
+            command = `${prefix} "PGPASSWORD=${this.password}" && psql -U ${this.user} -h ${this.host} -p ${this.port} -d ${this.database} \n`;
         } else if (this.dbType == DatabaseType.REDIS) {
             this.checkCommand('redis-cli');
             command = `redis-cli -h ${this.host} -p ${this.port} \n`;
@@ -293,8 +296,10 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
             this.checkCommand('mongo');
             command = `mongo --host ${this.host} --port ${this.port} ${this.user && this.password ? ` -u ${this.user} -p ${this.password}` : ''} \n`;
         } else if (this.dbType == DatabaseType.SQLITE) {
-
             command = `${getSqliteBinariesPath()} ${this.dbPath} \n`;
+        } else {
+            vscode.window.showErrorMessage(`Database type ${this.dbType} not support open terminal.`)
+            return;
         }
         const terminal = vscode.window.createTerminal(this.dbType.toString())
         terminal.sendText(command)
