@@ -88,30 +88,12 @@ export class ServiceManager {
 
     private initTreeView() {
         this.provider = new DbTreeDataProvider(this.context, CacheKey.DATBASE_CONECTIONS);
-        const treeview = vscode.window.createTreeView("github.cweijan.mysql", {
-            treeDataProvider: this.provider,
-        });
-        treeview.onDidCollapseElement((event) => {
-            DatabaseCache.storeElementState(event.element, vscode.TreeItemCollapsibleState.Collapsed);
-        });
-        treeview.onDidExpandElement((event) => {
-            DatabaseCache.storeElementState(event.element, vscode.TreeItemCollapsibleState.Expanded);
-        });
-        return treeview;
+        return this.provider.init("github.cweijan.mysql")
     }
 
     private initTreeProvider() {
         this.nosqlProvider = new DbTreeDataProvider(this.context, CacheKey.NOSQL_CONNECTION);
-        const treeview = vscode.window.createTreeView("github.cweijan.nosql", {
-            treeDataProvider: this.nosqlProvider,
-        });
-        treeview.onDidCollapseElement((event) => {
-            DatabaseCache.storeElementState(event.element, vscode.TreeItemCollapsibleState.Collapsed);
-        });
-        treeview.onDidExpandElement((event) => {
-            DatabaseCache.storeElementState(event.element, vscode.TreeItemCollapsibleState.Expanded);
-        });
-        return treeview;
+        return this.nosqlProvider.init("github.cweijan.nosql")
     }
 
 

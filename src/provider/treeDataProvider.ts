@@ -8,7 +8,6 @@ import { SSHConnectionNode } from "@/model/ssh/sshConnectionNode";
 import * as vscode from "vscode";
 import { CacheKey, DatabaseType } from "../common/constants";
 import { ConnectionNode } from "../model/database/connectionNode";
-import { SchemaNode } from "../model/database/schemaNode";
 import { UserGroup } from "../model/database/userGroup";
 import { CommandKey, Node } from "../model/interface/node";
 import { DatabaseCache } from "../service/common/databaseCache";
@@ -19,9 +18,25 @@ export class DbTreeDataProvider implements vscode.TreeDataProvider<Node> {
     public _onDidChangeTreeData: vscode.EventEmitter<Node> = new vscode.EventEmitter<Node>();
     public readonly onDidChangeTreeData: vscode.Event<Node> = this._onDidChangeTreeData.event;
     public static instances: DbTreeDataProvider[] = []
+    private treeView:vscode.TreeView<Node>;
+    private child:Node;
 
     constructor(protected context: vscode.ExtensionContext, public connectionKey: string) {
         DbTreeDataProvider.instances.push(this)
+    }
+
+    public init(treeId:string):vscode.TreeView<Node>{
+        const treeview = vscode.window.createTreeView(treeId, {
+            treeDataProvider: this,
+        });
+        treeview.onDidCollapseElement((event) => {
+            DatabaseCache.storeElementState(event.element, vscode.TreeItemCollapsibleState.Collapsed);
+        });
+        treeview.onDidExpandElement((event) => {
+            DatabaseCache.storeElementState(event.element, vscode.TreeItemCollapsibleState.Expanded);
+        });
+        this.treeView=treeview;
+        return treeview;
     }
 
     public getTreeItem(element: Node): Promise<vscode.TreeItem> | vscode.TreeItem {
@@ -35,7 +50,14 @@ export class DbTreeDataProvider implements vscode.TreeDataProvider<Node> {
     public async getChildren(element?: Node): Promise<Node[]> {
         return new Promise(async (res, rej) => {
             if (!element) {
-                res(this.getConnectionNodes())
+                const children=await this.getConnectionNodes();
+                if(children.length>0){
+                    setTimeout(() => {
+                        this.treeView.reveal(children[0])
+                    }, 250);
+                    // this.child=children[0]
+                }
+                res(children)
                 return;
             }
             try {
@@ -71,13 +93,17 @@ export class DbTreeDataProvider implements vscode.TreeDataProvider<Node> {
 
     public async addConnection(node: Node) {
 
-        const newKey = this.getKeyByNode(node)
+        const {newKey,provder} = this.getKeyByNode(node)
         node.context = node.global ? this.context.globalState : this.context.workspaceState
 
         const isGlobal = (node as any).isGlobal;
         const configNotChange = newKey == node.connectionKey && isGlobal == node.global
         if (configNotChange) {
             await node.indent({ command: CommandKey.update })
+            provder._onDidChangeTreeData.fire(null)
+            // setTimeout(async () => {
+            //     provder.treeView.reveal(provder.child, { expand: true, focus: true, select: true })
+            // }, 100);
             return;
         }
 
@@ -90,15 +116,19 @@ export class DbTreeDataProvider implements vscode.TreeDataProvider<Node> {
 
         node.connectionKey = newKey
         await node.indent({ command: CommandKey.add, connectionKey: newKey })
+        provder._onDidChangeTreeData.fire(null)
+        // setTimeout(async () => {
+        //     provder.treeView.reveal(provder.child, { expand: true, focus: true, select: true })
+        // }, 200);
 
     }
 
-    private getKeyByNode(connectionNode: Node): string {
+    private getKeyByNode(connectionNode: Node) {
         const dbType = connectionNode.dbType;
         if (dbType == DatabaseType.ES || dbType == DatabaseType.REDIS || dbType == DatabaseType.SSH || dbType == DatabaseType.FTP || dbType == DatabaseType.MONGO_DB) {
-            return CacheKey.NOSQL_CONNECTION;
+            return {newKey:CacheKey.NOSQL_CONNECTION,provder:DbTreeDataProvider.instances[1]};
         }
-        return CacheKey.DATBASE_CONECTIONS;
+        return {newKey:CacheKey.DATBASE_CONECTIONS,provder:DbTreeDataProvider.instances[0]};
     }
 
 
@@ -164,7 +194,7 @@ export class DbTreeDataProvider implements vscode.TreeDataProvider<Node> {
             return;
         }
 
-        const dbIdList: string[] = [];
+        const dbIdList: string[] = []; 
         const dbIdMap = new Map<string, Node>();
         const connectionNodes = await this.getConnectionNodes()
         for (const cNode of connectionNodes) {
