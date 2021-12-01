@@ -1,7 +1,7 @@
 "use strict";
 
 import * as vscode from "vscode";
-import { CodeCommand } from "./common/constants";
+import { CodeCommand, DatabaseType, Template } from "./common/constants";
 import { ConnectionNode } from "./model/database/connectionNode";
 import { SchemaNode } from "./model/database/schemaNode";
 import { UserGroup } from "./model/database/userGroup";
@@ -40,6 +40,7 @@ import { SSHConnectionNode } from "./model/ssh/sshConnectionNode";
 import { FTPFileNode } from "./model/ftp/ftpFileNode";
 import { HistoryNode } from "./provider/history/historyNode";
 import { ConnectService } from "./service/connect/connectService";
+import { RemainNode } from "./model/redis/remainNode";
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -55,9 +56,13 @@ export function activate(context: vscode.ExtensionContext) {
         ...initCommand({
             // util
             ...{
-                [CodeCommand.Refresh]: async (node: Node) => {
+                [CodeCommand.Refresh]: async (node: Node,byConnection:boolean) => {
                     if (node) {
-                        await node.getChildren(true)
+                        if(byConnection){
+                            DatabaseCache.clearByConnection(node.key)
+                        }else{
+                            await node.getChildren(true)
+                        }
                     } else {
                         DatabaseCache.clearCache()
                     }
@@ -185,21 +190,28 @@ export function activate(context: vscode.ExtensionContext) {
             },
             // query node
             ...{
-                "mysql.runQuery": (sql:string) => {
+                "mysql.runSQL": (sql:string) => {
                     if (typeof sql != 'string') { sql = null; }
                     QueryUnit.runQuery(sql, ConnectionManager.tryGetConnection());
                 },
                 "mysql.runAllQuery": () => {
                     QueryUnit.runQuery(null, ConnectionManager.tryGetConnection(), { runAll: true });
                 },
-                "mysql.query.switch": async (databaseOrConnectionNode: SchemaNode | ConnectionNode | EsConnectionNode | ESIndexNode) => {
-                    if (databaseOrConnectionNode) {
-                        await databaseOrConnectionNode.newQuery();
+                "mysql.query.switch": async (node: SchemaNode | EsConnectionNode | ESIndexNode) => {
+                    if (node) {
+                        if(node.dbType==DatabaseType.MONGO_DB){
+                            QueryUnit.showSQLTextDocument(node, `db('${node.label}').collection('').find({}).limit(100).toArray()`, Template.table);
+                        }else{
+                            await node.newQuery();
+                        }
                     } else {
                         vscode.workspace.openTextDocument({ language: 'sql' }).then(async (doc) => {
                             vscode.window.showTextDocument(doc)
                         });
                     }
+                },
+                "mysql.query.run": (queryNode: QueryNode) => {
+                    queryNode.run()
                 },
                 "mysql.query.open": (queryNode: QueryNode) => {
                     queryNode.open()
@@ -217,6 +229,7 @@ export function activate(context: vscode.ExtensionContext) {
                 "mysql.connection.terminal": (node: Node) => node.openTerminal(),
                 "mysql.redis.key.detail": (keyNode: KeyNode) => keyNode.detail(),
                 "mysql.redis.key.del": (keyNode: KeyNode) => keyNode.delete(),
+                "mysql.redis.loadMore": (renmainNode: RemainNode) => renmainNode.click(),
             },
             // table node
             ...{
@@ -247,7 +260,7 @@ export function activate(context: vscode.ExtensionContext) {
                 "mysql.column.down": (columnNode: ColumnNode) => {
                     columnNode.moveDown();
                 },
-                "mysql.column.add": (tableNode: TableNode) => {
+                "mysql.column.add": (tableNode: (TableNode|ColumnNode)) => {
                     tableNode.addColumnTemplate();
                 },
                 "mysql.column.update": (columnNode: ColumnNode) => {
@@ -255,6 +268,9 @@ export function activate(context: vscode.ExtensionContext) {
                 },
                 "mysql.column.drop": (columnNode: ColumnNode) => {
                     columnNode.dropColumnTemplate();
+                },
+                "mysql.column.createIndex": (columnNode: ColumnNode) => {
+                    columnNode.createIndexTemplate();
                 },
             },
             // template

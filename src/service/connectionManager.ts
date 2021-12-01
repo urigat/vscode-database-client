@@ -6,7 +6,7 @@ import { QueryUnit } from "./queryUnit";
 import { SSHConfig } from "../model/interface/sshConfig";
 import { DatabaseCache } from "./common/databaseCache";
 import { NodeUtil } from "../model/nodeUtil";
-import { SSHTunnelService } from "./tunnel/sshTunnelService";
+import { SSHTunnelService } from "./ssh/tunnel/sshTunnelService";
 import { DbTreeDataProvider } from "../provider/treeDataProvider";
 import { IConnection } from "./connect/connection";
 import { DatabaseType } from "@/common/constants";
@@ -104,17 +104,14 @@ export class ConnectionManager {
             const ssh = connectionNode.ssh;
             let connectOption = connectionNode;
             if (connectOption.usingSSH) {
-                connectOption = await this.tunnelService.createTunnel(connectOption, (err) => {
-                    reject(err?.message || err?.errno);
-                    if (err.errno == 'EADDRINUSE') { return; }
+                try {
+                    connectOption = await this.tunnelService.createTunnel(connectOption)
+                } catch (error) {
                     this.alivedConnection[key] = null
-                })
-                if (!connectOption) {
-                    reject("create ssh tunnel fail!");
-                    return;
+                    reject(error);
                 }
             }
-            const newConnection = this.create(connectOption);
+            const newConnection = this.createConnection(connectOption);
             this.alivedConnection[key] = { connection: newConnection, ssh };
             newConnection.connect(async (err: Error) => {
                 if (err) {
@@ -138,7 +135,7 @@ export class ConnectionManager {
 
     }
 
-    private static create(opt: Node) {
+    private static createConnection(opt: Node) {
         if (!opt.dbType) opt.dbType = DatabaseType.MYSQL
         switch (opt.dbType) {
             case DatabaseType.MSSQL:
@@ -178,9 +175,7 @@ export class ConnectionManager {
                     .replace(/#.+$/, '').split('@')
                 if (host != null) {
                     const node = NodeUtil.of({ key: queryName.split('@@')[0], host, port: parseInt(port), database, schema });
-                    if (node.getCache()) {
-                        return node.getCache();
-                    }
+                    return node.getCache();
                 }
             }
         }

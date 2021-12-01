@@ -2,7 +2,8 @@ import { CacheKey, CodeCommand, DatabaseType } from "@/common/constants";
 import { FileManager, FileModel } from "@/common/filesManager";
 import { ConnectionManager } from "@/service/connectionManager";
 import { resolve } from "path";
-import { platform } from "os";
+import { homedir, platform } from "os";
+import * as vscode from 'vscode'
 import { commands, Disposable, window, workspace } from "vscode";
 import { Global } from "../../common/global";
 import { Util } from "../../common/util";
@@ -13,7 +14,7 @@ import { NodeUtil } from "../../model/nodeUtil";
 import { DbTreeDataProvider } from "../../provider/treeDataProvider";
 import { ClientManager } from "../ssh/clientManager";
 import { ConnnetionConfig } from "./config/connnetionConfig";
-import { readFileSync } from "fs";
+import { existsSync, fstatSync, readFileSync, unlinkSync } from "fs";
 import { GlobalState, WorkState } from "@/common/state";
 var commandExistsSync = require('command-exists').sync;
 
@@ -37,13 +38,14 @@ export class ConnectService {
             eventHandler: (handler) => {
                 handler.on("init", () => {
                     handler.emit('route', 'connect')
+                    handler.emit('language', vscode.env.language)
                 }).on("route-connect", async () => {
                     if (node) {
                         handler.emit("edit", node)
                     } else {
                         handler.emit("connect")
                     }
-                    const exists = plat == 'win32' ? true : commandExistsSync("sqlite");
+                    const exists = plat == 'win32' ? true : commandExistsSync("sqlite") || commandExistsSync("sqlite3");
                     handler.emit("sqliteState", exists)
                 }).on("installSqlite", () => {
                     let command: string;
@@ -83,12 +85,18 @@ export class ConnectService {
                             handler.emit("error", err)
                         }
                     }
+                }).on('copy', value => {
+                    Util.copyToBoard(value)
                 }).on("close", () => {
                     handler.panel.dispose()
                 }).on("choose", ({ event, filters }) => {
-                    window.showOpenDialog({ filters }).then((uris) => {
-                        const uri = uris[0]
-                        if (uri) {
+                    let defaultUri:vscode.Uri;
+                    if(event=="privateKey"){
+                        defaultUri=vscode.Uri.file(homedir()+"/.ssh")
+                    }
+                    window.showOpenDialog({ filters,defaultUri }).then((uris) => {
+                        if (uris && uris[0]) {
+                            const uri = uris[0]
                             handler.emit("choose", { event, path: uri.fsPath })
                         }
                     })
@@ -109,6 +117,12 @@ export class ConnectService {
 
     static listenConfig(): Disposable {
         const configPath = resolve(FileManager.getPath("config.json"))
+        workspace.onDidCloseTextDocument(e => {
+            const changePath = resolve(e.uri.fsPath);
+            if (changePath == configPath) {
+                unlinkSync(configPath)
+            }
+        })
         return workspace.onDidSaveTextDocument(e => {
             const changePath = resolve(e.uri.fsPath);
             if (changePath == configPath) {
@@ -126,6 +140,7 @@ export class ConnectService {
             await GlobalState.update(CacheKey.NOSQL_CONNECTION, connectonConfig.nosql.global);
             await WorkState.update(CacheKey.NOSQL_CONNECTION, connectonConfig.nosql.workspace);
             DbTreeDataProvider.refresh();
+            unlinkSync(path)
         } catch (error) {
             window.showErrorMessage("Parse connect config fail!")
         }

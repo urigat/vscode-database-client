@@ -3,7 +3,7 @@ import { Util } from "@/common/util";
 import { QueryGroup } from "@/model/query/queryGroup";
 import { DbTreeDataProvider } from "@/provider/treeDataProvider";
 import { QueryUnit } from "@/service/queryUnit";
-import * as compareVersions from 'compare-versions';
+import compareVersions from 'compare-versions';
 import * as path from "path";
 import { ExtensionContext, ThemeIcon, TreeItemCollapsibleState } from "vscode";
 import { ConfigKey, Constants, ModelType } from "../../../common/constants";
@@ -49,7 +49,7 @@ export class EsConnectionNode extends Node {
             this.description = EsConnectionNode.versionMap[this.label]
         } else {
             this.execute<any>('get /').then(res => {
-                this.description=`version: ${res.version.number}`
+                this.description=res.version.number
                 EsConnectionNode.versionMap[this.label]=this.description
                 DbTreeDataProvider.refresh(this)
             }).catch(err=>{
@@ -57,9 +57,8 @@ export class EsConnectionNode extends Node {
             })
         }
 
-        if (this.isActive(lcp)) {
-            this.description = `${this.description}   Active`;
-        }
+        const basePath = Constants.RES_PATH + "/icon/server/";
+        this.iconPath = basePath + (this.isActive(lcp) ? "elasticsearch_active.svg": "elasticsearch.svg" );
 
     }
 
@@ -80,7 +79,7 @@ export class EsConnectionNode extends Node {
 
     public async deleteConnection(context: ExtensionContext) {
 
-        Util.confirm(`Are you want to Delete Connection ${this.label} ? `, async () => {
+        Util.confirm(`Are you want to Remove Connection ${this.label} ? `, async () => {
             this.indent({command:CommandKey.delete})
         })
 

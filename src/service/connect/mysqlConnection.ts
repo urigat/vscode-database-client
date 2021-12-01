@@ -8,11 +8,17 @@ export class MysqlConnection extends IConnection {
     private con: mysql.Connection;
     constructor(node: Node) {
         super()
+        if(node.useConnectionString){
+            this.con=mysql.createConnection(node.connectionUrl);
+            return;
+        }
         let config = {
             host: node.host, port: node.port, user: node.user, password: node.password, database: node.database,
             timezone: node.timezone,
             multipleStatements: true, dateStrings: true, supportBigNumbers: true, bigNumberStrings: true,
             connectTimeout: node.connectTimeout || 5000,
+            socketPath:node.socketPath,
+            timeout:node.requestTimeout,
             typeCast: (field, next) => {
                 if (this.dumpMode) return dumpTypeCast(field as mysql.TypecastField)
                 const buf = field.buffer();
@@ -25,6 +31,7 @@ export class MysqlConnection extends IConnection {
         if (node.useSSL) {
             config.ssl = {
                 rejectUnauthorized: false,
+                ca: (node.caPath) ? fs.readFileSync(node.caPath) : null,
                 cert: (node.clientCertPath) ? fs.readFileSync(node.clientCertPath) : null,
                 key: (node.clientKeyPath) ? fs.readFileSync(node.clientKeyPath) : null,
                 minVersion: 'TLSv1'

@@ -1,8 +1,8 @@
 {
 	"name": "vscode-database-client2",
 	"displayName": "Database Client",
-	"description": "Database Client for vscode",
-	"version": "3.9.6",
+	"description": "Supports manager databases for MySQL/MariaDB, PostgreSQL, SQLite, Redis and ElasticSearch.",
+	"version": "4.3.1",
 	"publisher": "cweijan",
 	"icon": "resources/logo.png",
 	"engines": {
@@ -124,7 +124,7 @@
 				"icon": "resources/icon/settings.svg"
 			},
 			{
-				"command": "mysql.refresh",
+				"command": "mysql2.refresh",
 				"title": "%command.refresh%",
 				"category": "MySQL",
 				"icon": "$(refresh)"
@@ -148,6 +148,12 @@
 			{
 				"command": "mysql.query.rename",
 				"title": "%command.query.rename%",
+				"category": "MySQL"
+			},
+			{
+				"command": "mysql.query.run",
+				"title": "%command.query.run%",
+				"icon": "$(run)",
 				"category": "MySQL"
 			},
 			{
@@ -201,7 +207,7 @@
 				"category": "MySQL"
 			},
 			{
-				"command": "mysql.runQuery",
+				"command": "mysql.runSQL",
 				"title": "%command.runQuery%",
 				"category": "MySQL",
 				"icon": "$(run)"
@@ -320,6 +326,11 @@
 			{
 				"command": "mysql.column.drop",
 				"title": "%command.column.drop%",
+				"category": "MySQL"
+			},
+			{
+				"command": "mysql.column.createIndex",
+				"title": "%command.column.createIndex%",
 				"category": "MySQL"
 			},
 			{
@@ -466,14 +477,19 @@
 		],
 		"keybindings": [
 			{
-				"command": "mysql.runQuery",
+				"command": "mysql.runSQL",
 				"key": "f9",
 				"when": "editorLangId == sql"
 			},
 			{
-				"command": "mysql.runQuery",
+				"command": "mysql.runSQL",
 				"key": "ctrl+enter",
 				"when": "editorLangId == sql"
+			},
+			{
+				"command": "mysql.runES",
+				"key": "ctrl+enter",
+				"when": "editorLangId == es"
 			},
 			{
 				"command": "mysql.runAllQuery",
@@ -494,7 +510,7 @@
 		"menus": {
 			"editor/context": [
 				{
-					"command": "mysql.runQuery",
+					"command": "mysql.runSQL",
 					"when": "editorLangId == sql",
 					"group": "navigation@-2"
 				},
@@ -516,7 +532,7 @@
 					"group": "navigation"
 				},
 				{
-					"command": "mysql.runQuery",
+					"command": "mysql.runSQL",
 					"when": "editorLangId == sql || resourceFilename =~ /.sql$/ ",
 					"group": "navigation"
 				}
@@ -528,7 +544,7 @@
 					"group": "navigation@3"
 				},
 				{
-					"command": "mysql.refresh",
+					"command": "mysql2.refresh",
 					"when": "view =~ /cweijan.+?ql/",
 					"group": "navigation@2"
 				},
@@ -555,8 +571,8 @@
 			],
 			"view/item/context": [
 				{
-					"command": "mysql.refresh",
-					"when": "view =~ /cweijan.+?ql/ && viewItem =~ /^(catalog|esConnection|sshConnection|folder|redisConnection|connection|tableGroup|viewGroup|systemViewGroup|triggerGroup|procedureGroup|functionGroup|table)$/",
+					"command": "mysql2.refresh",
+					"when": "view =~ /cweijan.+?ql/ && viewItem =~ /^(catalog|esConnection|sshConnection|folder|redisConnection|redisDB|redisFolder|connection|tableGroup|viewGroup|systemViewGroup|triggerGroup|procedureGroup|functionGroup|table|ftpConnection|ftpFolder)$/",
 					"group": "inline@-2"
 				},
 				{
@@ -566,7 +582,7 @@
 				},
 				{
 					"command": "mysql.connection.disable",
-					"when": "view =~ /cweijan.+?ql/ && viewItem =~ /^(connection|esConnection|redisConnection|ftpConnection)$/",
+					"when": "view =~ /cweijan.+?ql/ && viewItem =~ /^(connection|esConnection|redisConnection|ftpConnection|sshConnection)$/",
 					"group": "1_mysql@4"
 				},
 				{
@@ -590,7 +606,12 @@
 					"group": "2_mysql@0"
 				},
 				{
-					"command": "mysql.refresh",
+					"command": "mysql.query.run",
+					"when": "view =~ /cweijan.+?ql/ && viewItem == query",
+					"group": "2_mysql@0"
+				},
+				{
+					"command": "mysql2.refresh",
 					"when": "view =~ /cweijan.+?ql/ && viewItem =~ /^(esConnection|ftpConnection|ftpFolder)$/",
 					"group": "2_mysql@1"
 				},
@@ -621,7 +642,7 @@
 				},
 				{
 					"command": "mysql.query.switch",
-					"when": "view =~ /cweijan.+?ql/ && viewItem =~ /^(connection|catalog|database|esConnection|esIndex)$/",
+					"when": "view =~ /cweijan.+?ql/ && viewItem =~ /^(catalog|database|esConnection|esIndex)$/",
 					"group": "inline@5"
 				},
 				{
@@ -630,12 +651,17 @@
 					"group": "inline@0"
 				},
 				{
+					"command": "mysql.query.run",
+					"when": "view =~ /cweijan.+?ql/ && viewItem == query",
+					"group": "inline@0"
+				},
+				{
 					"command": "mysql.template.user",
 					"when": "view =~ /cweijan.+?ql/ && viewItem == userGroup",
 					"group": "1_mysql@1"
 				},
 				{
-					"command": "mysql.refresh",
+					"command": "mysql2.refresh",
 					"when": "view =~ /cweijan.+?ql/ && viewItem == userGroup",
 					"group": "1_mysql@2"
 				},
@@ -665,7 +691,7 @@
 					"group": "-1_mysql@-5"
 				},
 				{
-					"command": "mysql.refresh",
+					"command": "mysql2.refresh",
 					"when": "view =~ /cweijan.+?ql/ && viewItem == database",
 					"group": "3_mysql@0"
 				},
@@ -731,7 +757,7 @@
 				},
 				{
 					"command": "mysql.column.add",
-					"when": "view =~ /cweijan.+?ql/ && viewItem == table",
+					"when": "view =~ /cweijan.+?ql/ && viewItem =~ /^(table|column)$/",
 					"group": "1_inline@6"
 				},
 				{
@@ -760,7 +786,7 @@
 					"group": "2_mysql@2"
 				},
 				{
-					"command": "mysql.refresh",
+					"command": "mysql2.refresh",
 					"when": "view =~ /cweijan.+?ql/ && viewItem == tableGroup",
 					"group": "1_mysql@2"
 				},
@@ -780,12 +806,17 @@
 					"group": "inline@2"
 				},
 				{
-					"command": "mysql.column.drop",
+					"command": "mysql.column.createIndex",
 					"when": "view =~ /cweijan.+?ql/ && viewItem == column",
 					"group": "3_mysql@1"
 				},
 				{
-					"command": "mysql.refresh",
+					"command": "mysql.column.drop",
+					"when": "view =~ /cweijan.+?ql/ && viewItem == column",
+					"group": "3_mysql@4"
+				},
+				{
+					"command": "mysql2.refresh",
 					"when": "view =~ /cweijan.+?ql/ && viewItem == viewGroup",
 					"group": "1_mysql@2"
 				},
@@ -800,7 +831,7 @@
 					"group": "1_mysql@1"
 				},
 				{
-					"command": "mysql.refresh",
+					"command": "mysql2.refresh",
 					"when": "view =~ /cweijan.+?ql/ && viewItem == procedureGroup",
 					"group": "1_mysql@2"
 				},
@@ -815,7 +846,7 @@
 					"group": "2_mysql@1"
 				},
 				{
-					"command": "mysql.refresh",
+					"command": "mysql2.refresh",
 					"when": "view =~ /cweijan.+?ql/ && viewItem == functionGroup",
 					"group": "1_mysql@2"
 				},
@@ -830,7 +861,7 @@
 					"group": "1_mysql@1"
 				},
 				{
-					"command": "mysql.refresh",
+					"command": "mysql2.refresh",
 					"when": "view =~ /cweijan.+?ql/ && viewItem == triggerGroup",
 					"group": "1_mysql@2"
 				},
@@ -940,6 +971,16 @@
 			"type": "object",
 			"title": "%config.title%",
 			"properties": {
+				"database-client.resourceRoot": {
+					"type": "string",
+					"default": "internalServer",
+					"enum": [
+						"file",
+						"backup",
+						"internalServer"
+					],
+					"description": "Webview resource root, using file will create a lot of cache."
+				},
 				"database-client.defaultSelectLimit": {
 					"type": "integer",
 					"default": 100,
@@ -952,7 +993,7 @@
 				},
 				"database-client.preferConnectionName": {
 					"type": "boolean",
-					"default": true,
+					"default": false,
 					"description": "%config.preferConnectionName%"
 				},
 				"database-client.disableSqlCodeLen": {
@@ -1023,6 +1064,7 @@
 		"url-loader": "^4.1.0",
 		"vue-loader": "^15.9.2",
 		"vue-style-loader": "^4.1.2",
+		"esbuild": "^0.12.16",
 		"vue-template-compiler": "^2.6.11",
 		"webpack": "^4.43.0",
 		"webpack-cli": "^3.3.11"
@@ -1033,6 +1075,7 @@
 		"comment-json": "^4.1.0",
 		"compare-versions": "^3.6.0",
 		"date-format": "^3.0.0",
+		"debug": "^4.3.2",
 		"deepmerge": "^3.2.0",
 		"element-ui": "^2.13.2",
 		"g2": "^2.3.13",
@@ -1050,10 +1093,11 @@
 		"readable-stream": "1.1.x",
 		"routington": "^1.0.3",
 		"sqlstring": "^2.3.2",
-		"ssh2": "0.5.4",
+		"ssh2": "^1.5.0",
 		"supports-color": "^9.0.1",
 		"umy-table": "1.0.8",
 		"vue": "^2.6.11",
+		"vue-i18n": "^8.26.5",
 		"vue-router": "^3.4.1",
 		"xregexp": "2.0.0",
 		"xterm": "^4.12.0",

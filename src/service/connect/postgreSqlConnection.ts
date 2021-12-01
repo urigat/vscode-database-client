@@ -11,6 +11,10 @@ export class PostgreSqlConnection extends IConnection {
     private client: Client;
     constructor(node: Node) {
         super()
+        if(node.useConnectionString){
+            this.client=new Client(node.connectionUrl)
+            return;
+        }
         let config = {
             host: node.host, port: node.port,
             user: node.user, password: node.password,
@@ -21,6 +25,7 @@ export class PostgreSqlConnection extends IConnection {
         if (node.useSSL) {
             config.ssl = {
                 rejectUnauthorized: false,
+                ca: (node.caPath) ? fs.readFileSync(node.caPath) : null,
                 cert: (node.clientCertPath) ? fs.readFileSync(node.clientCertPath) : null,
                 key: (node.clientKeyPath) ? fs.readFileSync(node.clientKeyPath) : null,
             }
@@ -65,8 +70,13 @@ export class PostgreSqlConnection extends IConnection {
     }
     
     adaptResult(res: QueryArrayResult<any>) {
-        if (res.command != 'SELECT' && res.command != 'SHOW') {
+        if(res.command=='DELETE' || res.command=='UPDATE' || res.command=="INSERT"){
             return { affectedRows: res.rowCount }
+        }
+        if (res.command != 'SELECT' && res.command != 'SHOW') {
+            if(res.rows && res.rows instanceof Array){
+                return res.rows;
+            }
         }
         return res.rows;
     }

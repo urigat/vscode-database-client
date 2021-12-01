@@ -1,5 +1,7 @@
 import { ModelType } from "@/common/constants";
+import { CatalogNode } from "@/model/database/catalogNode";
 import { ConnectionNode } from "@/model/database/connectionNode";
+import { SchemaNode } from "@/model/database/schemaNode";
 import { UserGroup } from "@/model/database/userGroup";
 import { Node } from "@/model/interface/node";
 import { FunctionGroup } from "@/model/main/functionGroup";
@@ -17,13 +19,20 @@ export class NodeFinder {
         if (!lcp) return [];
 
         if (schema) {
-            const connectcionid = lcp?.getConnectId({ schema: schema, withSchema: true });
-            lcp = Node.nodeCache[connectcionid]
+            const connectId = lcp?.getUid({ schema: schema, withSchema: true });
+            lcp = Node.nodeCache[connectId]
             if (!lcp) return []
+        } else {
+            let isSchema = lcp instanceof SchemaNode || lcp instanceof CatalogNode;
+            while (lcp != null && !isSchema) {
+                lcp = lcp.parent
+                isSchema = lcp instanceof SchemaNode || lcp instanceof CatalogNode;
+            }
         }
 
-        let nodeList = []
         const groupNodes = await lcp.getChildren();
+        if(!groupNodes)return [];
+        let nodeList = []
         for (const type of types) {
             switch (type) {
                 case ModelType.COLUMN:
@@ -35,23 +44,23 @@ export class NodeFinder {
                     nodeList.push(...databaseNodes.filter(databaseNodes => !(databaseNodes instanceof UserGroup)))
                     break;
                 case ModelType.TABLE:
-                    if(lcp instanceof ConnectionNode) break;
+                    if (lcp instanceof ConnectionNode) break;
                     nodeList.push(...await groupNodes.find(n => n instanceof TableGroup).getChildren())
                     break;
                 case ModelType.VIEW:
-                    if(lcp instanceof ConnectionNode) break;
+                    if (lcp instanceof ConnectionNode) break;
                     nodeList.push(...await groupNodes.find(n => n instanceof ViewGroup).getChildren())
                     break;
                 case ModelType.PROCEDURE:
-                    if(lcp instanceof ConnectionNode) break;
+                    if (lcp instanceof ConnectionNode) break;
                     nodeList.push(...await groupNodes.find(n => n instanceof ProcedureGroup).getChildren())
                     break;
                 case ModelType.TRIGGER:
-                    if(lcp instanceof ConnectionNode) break;
+                    if (lcp instanceof ConnectionNode) break;
                     nodeList.push(...await groupNodes.find(n => n instanceof TriggerGroup).getChildren())
                     break;
                 case ModelType.FUNCTION:
-                    if(lcp instanceof ConnectionNode) break;
+                    if (lcp instanceof ConnectionNode) break;
                     nodeList.push(...await groupNodes.find(n => n instanceof FunctionGroup).getChildren())
                     break;
             }

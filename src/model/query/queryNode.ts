@@ -1,7 +1,8 @@
 import { Constants, ModelType } from "@/common/constants";
 import { FileManager } from "@/common/filesManager";
 import { DbTreeDataProvider } from "@/provider/treeDataProvider";
-import { renameSync } from "fs";
+import { QueryUnit } from "@/service/queryUnit";
+import { readFileSync, renameSync, writeFileSync } from "fs";
 import * as path from "path";
 import * as vscode from "vscode";
 import { TreeItemCollapsibleState } from "vscode";
@@ -21,6 +22,11 @@ export class QueryNode extends Node {
         }
     }
 
+    public async run() {
+        const content = readFileSync(this.getFilePath(),'utf8')
+        QueryUnit.runQuery(content,this)
+    }
+
     public async open() {
         await vscode.window.showTextDocument(
             await vscode.workspace.openTextDocument(this.getFilePath())
@@ -37,7 +43,7 @@ export class QueryNode extends Node {
     }
 
     private getFilePath(newName?: string): string {
-        return `${FileManager.storagePath}/query/${this.getConnectId({ withSchema: true })}/${newName || this.name}.sql`;
+        return `${FileManager.storagePath}/query/${this.getUid({ withSchema: true })}/${newName || this.name}.sql`;
     }
 
 

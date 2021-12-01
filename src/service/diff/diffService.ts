@@ -1,17 +1,16 @@
 import { DatabaseType } from "@/common/constants";
 import { Global } from "@/common/global";
+import { ViewManager } from "@/common/viewManager";
+import { UserGroup } from "@/model/database/userGroup";
 import { Node } from "@/model/interface/node";
+import { TableGroup } from "@/model/main/tableGroup";
 import { TableNode } from "@/model/main/tableNode";
 import { NodeUtil } from "@/model/nodeUtil";
 import { ColumnNode } from "@/model/other/columnNode";
+import { InfoNode } from "@/model/other/infoNode";
 import { DbTreeDataProvider } from "@/provider/treeDataProvider";
-import { ViewManager } from "@/common/viewManager";
-import { DatabaseCache } from "../common/databaseCache";
 import { ConnectionManager } from "../connectionManager";
 import { QueryUnit } from "../queryUnit";
-import { SchemaNode } from "@/model/database/schemaNode";
-import { UserGroup } from "@/model/database/userGroup";
-import { TableGroup } from "@/model/main/tableGroup";
 
 export class DiffService {
     startDiff(provider: DbTreeDataProvider) {
@@ -23,10 +22,14 @@ export class DiffService {
                 handler.on("init", () => {
                     handler.emit('route', 'structDiff')
                 }).on("route-structDiff", async () => {
-                    const nodes = (await provider.getConnectionNodes())
+                    const nodes = ( provider.getConnectionNodes()).filter(cNode=>(!cNode.disable && !(cNode instanceof InfoNode)))
                     let databaseList = {}
                     for (const node of nodes) {
-                        databaseList[node.uid] = (await node.getChildren()).filter(dbNode => !(dbNode instanceof UserGroup))
+                        try {
+                            databaseList[node.key] = (await node.getChildren()).filter(dbNode => !(dbNode instanceof UserGroup))
+                        } catch (error) {
+                            databaseList[node.key] = [new InfoNode("Load fail:."+error)]
+                        }
                     }
                     const data = { nodes: NodeUtil.removeParent(nodes), databaseList: NodeUtil.removeParent(databaseList) };
                     handler.emit('structDiffData', data)
@@ -38,8 +41,8 @@ export class DiffService {
                         handler.emit("error", error.message)
                     }
                 }).on("start", async (opt) => {
-                    const fromTables =await new TableGroup(Node.nodeCache[opt.from.db.uid]).getChildren()
-                    const toTables =await new TableGroup(Node.nodeCache[opt.to.db.uid]).getChildren()
+                    const fromTables = await new TableGroup(Node.nodeCache[opt.from.db.uid]).getChildren()
+                    const toTables = await new TableGroup(Node.nodeCache[opt.to.db.uid]).getChildren()
                     let sqlList = await this.compareTables(fromTables, toTables);
                     handler.emit("compareResult", { sqlList })
                 }).on("sync", async ({ option, sqlList }) => {
@@ -80,6 +83,7 @@ export class DiffService {
 
         for (const newTable in toTablesMap) {
             const newTableNode = toTablesMap[newTable] as TableNode;
+            if(newTableNode instanceof InfoNode) continue;
             sqlList.push({ type: 'add', sql: await newTableNode.showSource(false) });
         }
         return sqlList;

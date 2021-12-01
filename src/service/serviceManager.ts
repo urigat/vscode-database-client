@@ -38,6 +38,8 @@ import { MongoPageService } from "./page/mongoPageService";
 import { HighlightCreator } from "@/provider/codelen/highlightCreator";
 import { SQLSymbolProvide } from "@/provider/sqlSymbolProvide";
 import { MysqlDumpService } from "./dump/mysqlDumpService";
+import { ResourceServer } from "./resourceServer";
+import { PostgreDumpService } from "./dump/postgreDumpService";
 
 export class ServiceManager {
 
@@ -58,6 +60,7 @@ export class ServiceManager {
         DatabaseCache.initCache();
         ViewManager.initExtesnsionPath(context.extensionPath);
         FileManager.init(context)
+        ResourceServer.init(context.extensionPath)
         new ConnectionProvider();
     }
 
@@ -123,6 +126,8 @@ export class ServiceManager {
         switch (dbType) {
             case DatabaseType.MYSQL:
                 return new MysqlDumpService()
+            case DatabaseType.PG:
+                return new PostgreDumpService();
         }
         return new DumpService()
     }

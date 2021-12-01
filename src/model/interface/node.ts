@@ -13,6 +13,7 @@ import * as vscode from "vscode";
 import { Memento } from "vscode";
 var commandExistsSync = require('command-exists').sync;
 import { DatabaseCache } from "../../service/common/databaseCache";
+import { ConnectionNode } from "../database/connectionNode";
 import { NodeUtil } from "../nodeUtil";
 import { CopyAble } from "./copyAble";
 import { SSHConfig } from "./sshConfig";
@@ -38,6 +39,8 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
     public connectTimeout?: number;
     public requestTimeout?: number;
     public includeDatabases?: string;
+    
+    public useConnectionString?: boolean;
     public connectionUrl?: string;
     /**
      * ssh
@@ -52,9 +55,10 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
     public description: string;
     public global?: boolean;
     public disable?: boolean;
+    public hideSystemSchema?: boolean;
 
     /**
-     * using to distingush connectHolder, childCache, elementState
+     * using to distingush connection, UI State
      */
     public uid: string;
     public key: string;
@@ -63,8 +67,15 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
     public parent?: Node;
 
     public useSSL?: boolean;
+    public caPath?: string;
     public clientCertPath?: string;
     public clientKeyPath?: string;
+    public socketPath?: string;
+
+    /**
+     * redis only
+     */
+    public isCluster?: boolean;
 
     /**
      * sqlite only
@@ -83,6 +94,12 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
      * es only
      */
     public scheme: string;
+    public esAuth: string;
+    public esToken: string;
+    /**
+     * using when ssh tunnel
+     */
+    public esUrl: string;
 
     /**
      * encoding, ftp only
@@ -104,17 +121,22 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
         this.password = source.password
         this.timezone = source.timezone
         this.useSSL = source.useSSL
+        this.isCluster = source.isCluster
         this.clientCertPath = source.clientCertPath
         this.clientKeyPath = source.clientKeyPath
         this.ssh = source.ssh
         this.usingSSH = source.usingSSH
         this.scheme = source.scheme
+        this.esAuth = source.esAuth
+        this.esToken = source.esToken
         this.encoding = source.encoding
         this.showHidden = source.showHidden
         this.connectionKey = source.connectionKey
+        this.hideSystemSchema = source.hideSystemSchema
         this.global = source.global
         this.dbType = source.dbType
         this.connectionUrl = source.connectionUrl
+        this.useConnectionString = source.useConnectionString
         if (source.connectTimeout) {
             this.connectTimeout = parseInt(source.connectTimeout as any)
             source.connectTimeout = parseInt(source.connectTimeout as any)
@@ -130,6 +152,7 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
         this.authType = source.authType
         this.disable = source.disable
         this.includeDatabases = source.includeDatabases
+        this.socketPath=source.socketPath
         if (!this.database) this.database = source.database
         if (!this.schema) this.schema = source.schema
         if (!this.provider) this.provider = source.provider
@@ -191,36 +214,52 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
 
     }
 
+    
+    /**
+     * child caches
+     */
+    private childenCaches:Node[];
     public getChildCache<T extends Node>(): T[] {
-        return DatabaseCache.getChildCache(this.uid)
+        // return this.childenCaches as T[];
+        return DatabaseCache.getChildCache(this) 
     }
 
-    public setChildCache(childs: Node[]) {
-        DatabaseCache.setChildCache(this.uid, childs)
+    public setChildCache(childs?: Node[]) {
+        // this.childenCaches=childs;
+        DatabaseCache.setChildCache(this, childs)
+    }
+
+    public clearCache(){
+        if(this instanceof ConnectionNode){
+            DatabaseCache.setSchemaListOfConnection(this.key, null);
+            return;
+        }
+        DatabaseCache.setChildCache(this,null)
     }
 
     public static nodeCache = {};
     public cacheSelf() {
         if (this.contextValue == ModelType.CONNECTION || this.contextValue == ModelType.ES_CONNECTION) {
-            Node.nodeCache[`${this.getConnectId()}`] = this;
+            Node.nodeCache[`${this.getUid()}`] = this;
         } else if (this.contextValue == ModelType.SCHEMA) {
-            Node.nodeCache[`${this.getConnectId({ withSchema: true })}`] = this;
+            Node.nodeCache[`${this.getUid({ withSchema: true })}`] = this;
         } else {
             Node.nodeCache[`${this.uid}`] = this;
         }
     }
+
     public getCache() {
         if (this.schema) {
-            return Node.nodeCache[`${this.getConnectId({ withSchema: true })}`]
+            return Node.nodeCache[`${this.getUid({ withSchema: true })}`]
         }
-        return Node.nodeCache[`${this.getConnectId()}`]
+        return Node.nodeCache[`${this.getUid()}`]
     }
 
     public getByRegion<T extends Node>(region?: string): T {
         if (!region) {
-            return Node.nodeCache[`${this.getConnectId({ withSchema: true })}`]
+            return Node.nodeCache[`${this.getUid({ withSchema: true })}`]
         }
-        return Node.nodeCache[`${this.getConnectId({ withSchema: true })}#${region}`]
+        return Node.nodeCache[`${this.getUid({ withSchema: true })}#${region}`]
     }
 
     public getChildren(isRresh?: boolean): Node[] | Promise<Node[]> {
@@ -230,19 +269,31 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
     public initUid() {
         if (this.uid) return;
         if (this.contextValue == ModelType.CONNECTION || this.contextValue == ModelType.CATALOG) {
-            this.uid = this.getConnectId();
+            this.uid = this.getUid();
         } else if (this.contextValue == ModelType.SCHEMA || this.contextValue == ModelType.REDIS_CONNECTION) {
-            this.uid = `${this.getConnectId({ withSchema: true })}`;
+            this.uid = `${this.getUid({ withSchema: true })}`;
         } else {
-            this.uid = `${this.getConnectId({ withSchema: true })}#${this.label}`;
+            this.uid = `${this.getUid({ withSchema: true })}#${this.label}`;
         }
     }
 
     public isActive(cur: Node) {
-        return cur && cur.getConnectId() == this.getConnectId();
+        return cur && cur.getUid() == this.getUid();
     }
 
-    public getConnectId(opt?: SwitchOpt): string {
+
+    public getConnectId(){
+        if(this.dbType==DatabaseType.MSSQL || this.dbType==DatabaseType.PG || this.dbType==DatabaseType.REDIS){
+            return `${this.key}/${this.database}`
+        }
+
+        return this.key;
+    }
+
+    /**
+     * generate connectId to helper complection, holder delimiter, locate alive connection.
+     */
+    public getUid(opt?: SwitchOpt): string {
 
 
         let uid = (this.usingSSH) ? `${this.ssh.host}@${this.ssh.port}` : `${this.host}@${this.instanceName ? this.instanceName : this.port}`;
@@ -282,19 +333,27 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
 
     public openTerminal() {
         let command: string;
+
+        const host = this.usingSSH ? "127.0.0.1" : this.host
+        const port = this.usingSSH ? NodeUtil.getTunnelPort(this.key) : this.port;
+        if(!port){
+            vscode.window.showErrorMessage("SSH tunnel not created!")
+            return;
+        }
+
         if (this.dbType == DatabaseType.MYSQL) {
             this.checkCommand('mysql');
-            command = `mysql -u ${this.user} -p${this.password} -h ${this.host} -P ${this.port} \n`;
+            command = `mysql -u ${this.user} -p${this.password} -h ${host} -P ${port} \n`;
         } else if (this.dbType == DatabaseType.PG) {
             this.checkCommand('psql');
             let prefix = platform() == 'win32' ? 'set' : 'export';
-            command = `${prefix} "PGPASSWORD=${this.password}" && psql -U ${this.user} -h ${this.host} -p ${this.port} -d ${this.database} \n`;
+            command = `${prefix} "PGPASSWORD=${this.password}" && psql -U ${this.user} -h ${host} -p ${port} -d ${this.database} \n`;
         } else if (this.dbType == DatabaseType.REDIS) {
             this.checkCommand('redis-cli');
-            command = `redis-cli -h ${this.host} -p ${this.port} \n`;
+            command = this.isCluster ? `redis-cli -h ${host} -p ${port} -c \n` : `redis-cli -h ${host} -p ${port} \n`;
         } else if (this.dbType == DatabaseType.MONGO_DB) {
             this.checkCommand('mongo');
-            command = `mongo --host ${this.host} --port ${this.port} ${this.user && this.password ? ` -u ${this.user} -p ${this.password}` : ''} \n`;
+            command = `mongo --host ${host} --port ${port} ${this.user && this.password ? ` -u ${this.user} -p ${this.password}` : ''} \n`;
         } else if (this.dbType == DatabaseType.SQLITE) {
             command = `${getSqliteBinariesPath()} ${this.dbPath} \n`;
         } else {

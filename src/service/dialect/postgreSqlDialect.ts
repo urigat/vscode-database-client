@@ -1,9 +1,13 @@
+import { ColumnMeta } from "@/common/typeDef";
 import { CreateIndexParam } from "./param/createIndexParam";
 import { UpdateColumnParam } from "./param/updateColumnParam";
 import { UpdateTableParam } from "./param/updateTableParam";
 import { SqlDialect } from "./sqlDialect";
 
 export class PostgreSqlDialect extends SqlDialect {
+    showVersion(){
+        return "SHOW server_version;"
+    }
     createIndex(createIndexParam: CreateIndexParam): string {
         const indexType = createIndexParam.indexType || "btree"
         return `CREATE INDEX ${createIndexParam.column}_${new Date().getTime()}_index ON ${createIndexParam.table} USING ${indexType} (${createIndexParam.column});`;
@@ -80,19 +84,20 @@ export class PostgreSqlDialect extends SqlDialect {
         a.pid ASC,
         c.relname ASC`
     }
-    addColumn(table: string): string {
+    addColumn(table: string,column?:string): string {
         return `ALTER TABLE
-        ${table} 
-    ADD 
-        COLUMN [column] [type];`;
+    ${table} 
+ADD 
+    COLUMN [column] [type];`;
     }
     createUser(): string {
         return `CREATE USER [name] WITH PASSWORD 'password'`
     }
-    updateColumn(table: string, column: string, type: string, comment: string, nullable: string): string {
+    updateColumn(table: string, column: ColumnMeta): string {
+        let { name, type, comment, nullable, defaultValue } = column;
         comment = comment ? ` comment '${comment}'` : "";
-        return `ALTER TABLE ${table} ALTER COLUMN ${column} TYPE ${type};
-ALTER TABLE ${table} ALTER RENAME COLUMN ${column} TO [newColumnName];`;
+        return `ALTER TABLE ${table} ALTER COLUMN ${name} TYPE ${type};
+ALTER TABLE ${table} ALTER RENAME COLUMN ${name} TO [newColumnName];`;
     }
     updateColumnSql(updateColumnParam: UpdateColumnParam): string {
         let { columnName, columnType, newColumnName, comment, nullable, table } = updateColumnParam
@@ -131,14 +136,17 @@ ALTER TABLE ${table} ALTER COLUMN ${columnName} ${defaultDefinition};`;
         return `SELECT Concat('TRUNCATE TABLE "',TABLE_NAME, '";') trun FROM INFORMATION_SCHEMA.TABLES WHERE  table_schema ='${database}' AND table_type='BASE TABLE';`
     }
     createDatabase(database: string): string {
-        return `create database "${database}"`;
+        return `CREATE DATABASE [name]`;
     }
     showTableSource(database: string, table: string): string {
         return '';
         // return `SHOW CREATE TABLE "${database}"."${table}";`
     }
     showViewSource(database: string, table: string): string {
-        return `SELECT CONCAT('CREATE VIEW ',table_name,'\nAS\n(',regexp_replace(view_definition,';$',''),')') "Create View",table_name,view_definition from information_schema.views where table_schema='${database}' and table_name='${table}';`
+        return `SELECT CONCAT('CREATE VIEW ',table_name,'\nAS\n(',regexp_replace(view_definition,';$',''),')') "Create View",table_name,view_definition from information_schema.views where table_schema='${database}' and table_name='${table}'
+        UNION ALL
+        SELECT CONCAT('CREATE MATERIALIZED VIEW ',matviewname,'\nAS\n(',regexp_replace(definition,';$',''),')') "Create View",matviewname "table_name",'definition' "view_definition" from pg_matviews
+        WHERE schemaname='${database}';`
     }
     showProcedureSource(database: string, name: string): string {
         return `select pg_get_functiondef('${database}.${name}' :: regproc) "Create Procedure",'${name}' "Procedure";`;
@@ -170,7 +178,11 @@ ALTER TABLE ${table} ALTER COLUMN ${columnName} ${defaultDefinition};`;
         return `SELECT ROUTINE_NAME "ROUTINE_NAME" FROM information_schema.routines WHERE ROUTINE_SCHEMA = '${database}' and ROUTINE_TYPE='FUNCTION'`;
     }
     showViews(database: string): string {
-        return `select table_name "name" from information_schema.tables where table_schema='${database}' and table_type='VIEW' order by "name";`
+        return `SELECT table_name "name",'simple' "type" from information_schema.tables where table_schema='${database}' and table_type='VIEW' 
+UNION ALL
+SELECT matviewname "name",'material' "type" from pg_matviews
+WHERE schemaname='${database}'
+        `
     }
     buildPageSql(database: string, table: string, pageSize: number): string {
         return `SELECT * FROM ${table} LIMIT ${pageSize};`;
@@ -180,13 +192,13 @@ ALTER TABLE ${table} ALTER COLUMN ${columnName} ${defaultDefinition};`;
     }
     showTables(database: string): string {
         return `  SELECT t.table_name "name", pg_catalog.obj_description(pgc.oid, 'pg_class') "comment"
-        FROM information_schema.tables t
-        JOIN pg_catalog.pg_class pgc ON t.table_name = pgc.relname 
-        JOIN pg_catalog.pg_namespace pgn ON pgn.oid=pgc.relnamespace and pgn.nspname=t.table_schema
-        WHERE t.table_type='BASE TABLE'
-        AND t.table_schema='${database}' order by t.table_name;`
+FROM information_schema.tables t
+JOIN pg_catalog.pg_class pgc ON t.table_name = pgc.relname 
+JOIN pg_catalog.pg_namespace pgn ON pgn.oid=pgc.relnamespace and pgn.nspname=t.table_schema
+WHERE t.table_type='BASE TABLE'
+AND t.table_schema='${database}' order by t.table_name;`
     }
-    showDatabases(){
+    showDatabases() {
         return `SELECT datname "Database" FROM pg_database WHERE datistemplate = false;`
     }
     showSchemas(): string {
@@ -194,10 +206,10 @@ ALTER TABLE ${table} ALTER COLUMN ${columnName} ${defaultDefinition};`;
     }
     tableTemplate(): string {
         return `CREATE TABLE [name](  
-    id SERIAL NOT NULL primary key,
+    id SERIAL NOT NULL PRIMARY KEY,
     create_time DATE,
     update_time DATE,
-    [column] varchar(255)
+    [column] VARCHAR(255)
 );
 COMMENT ON TABLE [table] IS '[comment'];
 COMMENT ON COLUMN [table].[column] IS '[comment]';`

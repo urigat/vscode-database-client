@@ -5,6 +5,7 @@ const extName=require("@/../package.json")
 
 export class Constants {
     public static CONFIG_PREFIX = "database-client"
+    public static CDN_VERSION = "4.2.1"
     public static RES_PATH = path.join(vscode.extensions.getExtension(`${extName.publisher}.${extName.name}`).extensionPath, "resources");
 }
 
@@ -34,7 +35,7 @@ export enum ConfigKey {
 
 export enum CodeCommand {
     RecordHistory = "mysql.history.record",
-    Refresh = "mysql.refresh"
+    Refresh = "mysql2.refresh"
 }
 
 export class Cursor {
@@ -67,7 +68,7 @@ export enum ModelType {
     /**
      * redis
      */
-    REDIS_CONNECTION = "redisConnection", REDIS_FOLDER = "redisFolder", REDIS_KEY = "redisKey",
+    REDIS_CONNECTION = "redisConnection",REDIS_DB = "redisDB", REDIS_FOLDER = "redisFolder", REDIS_KEY = "redisKey",
     /**
      * ElasticSearch
      */

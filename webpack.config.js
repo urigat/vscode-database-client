@@ -28,13 +28,15 @@ module.exports = [
         resolve: {
             extensions: ['.ts', '.js'],
             alias: {
-                '@': path.resolve(__dirname, './src'),
-                '~': path.resolve(__dirname, './src')
+                '@': path.resolve(__dirname, './src')
             }
         },
         plugins: [
-            new webpack.IgnorePlugin(/^(pg-native|cardinal|encoding|aws4)$/)
+            new webpack.IgnorePlugin(/^(pg-native|cardinal|encoding|aws4|cpu-features)$/)
         ],
+        stats: {
+            warningsFilter: [/critical dependency:/i],
+        },
         module: { rules: [{ test: /\.ts$/, exclude: /(node_modules|bin)/, use: ['ts-loader'] }] },
         optimization: { minimize: isProd },
         watch: !isProd,
