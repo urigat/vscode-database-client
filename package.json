@@ -2,7 +2,7 @@
 	"name": "vscode-database-client2",
 	"displayName": "Database Client MySQL/Postgresql",
 	"description": "Supports manager databases for MySQL/MariaDB, PostgreSQL, SQLite, Redis and ElasticSearch.",
-	"version": "4.3.5",
+	"version": "4.3.6",
 	"publisher": "cweijan",
 	"icon": "resources/logo.png",
 	"engines": {
@@ -572,7 +572,7 @@
 			"view/item/context": [
 				{
 					"command": "mysql2.refresh",
-					"when": "view =~ /cweijan.+?ql/ && viewItem =~ /^(catalog|esConnection|sshConnection|folder|redisConnection|redisDB|redisFolder|connection|tableGroup|viewGroup|systemViewGroup|triggerGroup|procedureGroup|functionGroup|table|ftpConnection|ftpFolder)$/",
+					"when": "view =~ /cweijan.+?ql/ && viewItem =~ /^(catalog|esConnection|sshConnection|folder|redisConnection|redisDB|redisFolder|connection|tableGroup|viewGroup|systemViewGroup|triggerGroup|procedureGroup|functionGroup|ftpConnection|ftpFolder)$/",
 					"group": "inline@-2"
 				},
 				{
@@ -1000,6 +1000,11 @@
 					"type": "boolean",
 					"default": true,
 					"description": "Auto get table count when load table data."
+				},
+				"database-client.recordSelectSQL": {
+					"type": "boolean",
+					"default": true,
+					"description": "Record select sql as history."
 				},
 				"database-client.preferConnectionName": {
 					"type": "boolean",
