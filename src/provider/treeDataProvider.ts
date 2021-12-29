@@ -123,7 +123,7 @@ export class DbTreeDataProvider implements vscode.TreeDataProvider<Node> {
 
         const connetKey = this.connectionKey;
         let globalConnections = GlobalState.get<{ [key: string]: Node }>(connetKey, {});
-        let workspaceConnections = WorkState.get<{ [key: string]: Node }>(connetKey, {});
+        let workspaceConnections = vscode.workspace.getConfiguration("database-client").get(connetKey, {});
 
         const connections = [
             ...Object.keys(workspaceConnections).map(key => this.getNode(workspaceConnections[key], key, false, connetKey)),

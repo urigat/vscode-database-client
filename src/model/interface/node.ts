@@ -203,7 +203,11 @@ export abstract class Node extends vscode.TreeItem implements CopyAble {
             }
 
 
-            await this.context.update(connectionKey, connections);
+            if(this.global){
+                await this.context.update(connectionKey, connections);
+            }else{
+                vscode.workspace.getConfiguration("database-client").update(connectionKey, connections);
+            }
 
             if (command.refresh !== false) {
                 DbTreeDataProvider.refresh();

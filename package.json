@@ -976,6 +976,16 @@
 			"type": "object",
 			"title": "%config.title%",
 			"properties": {
+				"database-client.mysql.connections": {
+					"type": "object",
+					"default": {},
+					"description": "Webview resource root, using file will create a lot of cache."
+				},
+				"database-client.mysql.redis.connections": {
+					"type": "object",
+					"default": {},
+					"description": "Webview resource root, using file will create a lot of cache."
+				},
 				"database-client.resourceRoot": {
 					"type": "string",
 					"default": "internalServer",
