@@ -1,10 +1,10 @@
 {
 	"name": "vscode-database-client2",
 	"displayName": "Database Client MySQL/Postgresql",
-	"description": "Supports manager databases for MySQL/MariaDB, PostgreSQL, SQLite, Redis and ElasticSearch.",
-	"version": "4.3.6",
+	"description": "Database manager for MySQL/MariaDB, PostgreSQL, SQLite, Redis and ElasticSearch.",
+	"version": "4.3.7",
 	"publisher": "cweijan",
-	"icon": "resources/logo.png",
+	"icon": "resources/databases.png",
 	"engines": {
 		"vscode": "^1.51.0"
 	},
