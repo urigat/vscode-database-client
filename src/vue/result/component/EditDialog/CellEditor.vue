@@ -4,7 +4,7 @@
       <el-date-picker value-format="yyyy-MM-dd" :value="value" @input="sync"></el-date-picker>
     </template>
     <template v-else-if="type=='jsonb'">
-      <el-input type="textarea" :value="JSON.stringify(value)" @input="sync"></el-input>
+      <el-input type="textarea" :value="assertString(value)" @input="sync"></el-input>
     </template>
     <template v-else-if="type=='time'">
       <el-time-picker value-format="HH:mm:ss" :value="value" @input="sync"></el-time-picker>
@@ -24,6 +24,9 @@ export default {
       if(!type)return false;
       type=type.toUpperCase()
       return type=='DATETIME' || type=='TIMESTAMP' || type=='TIMESTAMP WITHOUT TIME ZONE' ||type=='TIMESTAMP WITH TIME ZONE'
+    },
+    assertString(value){
+      return typeof value === 'string' ? value : JSON.stringify(value)
     },
     sync(value) {
       // console.log(value)
