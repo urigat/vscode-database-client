@@ -4,7 +4,7 @@
       <el-date-picker value-format="yyyy-MM-dd" :value="value" @input="sync"></el-date-picker>
     </template>
     <template v-else-if="type=='jsonb'">
-      <el-input :value="JSON.stringify(value)" @input="sync"></el-input>
+      <el-input type="textarea" :value="JSON.stringify(value)" @input="sync"></el-input>
     </template>
     <template v-else-if="type=='time'">
       <el-time-picker value-format="HH:mm:ss" :value="value" @input="sync"></el-time-picker>
